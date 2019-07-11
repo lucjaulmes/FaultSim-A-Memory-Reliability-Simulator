@@ -16,11 +16,8 @@ FaultSim depends on the Boost library version 1.53.
 
 BUILDING FAULTSIM
 
-Create environment variables to point to the include and library directories of your installed BOOST library
-(typically boost_1_53_0/include) e.g.
-
-export BOOSTINC=/path/../boost_1_53_0/include
-export BOOSTLIB=/path/../boost_1_53_0/lib
+Ensure your compiler can find the Boost libraries, by adding if necessary
+-I/path/to/boost/includes and -L/path/to/boost/libraries to the CXXFLAGS
 
 Then type;
 

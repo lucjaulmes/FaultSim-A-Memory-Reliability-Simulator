@@ -144,6 +144,8 @@ uint64_t EventSimulation::runOne( uint64_t max_s, int verbose, uint64_t bin_leng
 		devices++;
 	}
 
+	(void)err_inserted;
+
 	// Step through the event list, injecting a fault into corresponding chip at each event, and invoking ECC
 	uint64_t n_undetected = 0;
 	uint64_t n_uncorrected = 0;

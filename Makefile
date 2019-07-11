@@ -1,26 +1,43 @@
-CC=g++
-INC=-I$(BOOSTINC)
+CXXFLAGS=-Wall -std=c++0x -O2
+LDLIBS=-lboost_program_options
 
-CFLAGS=-c -Wall -std=c++0x -O2
-LDFLAGS=-L $(BOOSTLIB) -lboost_program_options
+SRCDIR:=src
+OBJDIR:=obj
 
-SOURCES := $(wildcard src/*.cpp)
-OBJECTS=$(SOURCES:.cpp=.o)
+SOURCES:=$(wildcard $(SRCDIR)/*.cpp)
+OBJECTS:=$(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SOURCES))
+
 EXECUTABLE=faultsim
 
-all: $(EXECUTABLE) doc
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
-
-.cpp.o:
-	$(CC) $(CFLAGS) $(INC) $< -o $@
+all: depend $(EXECUTABLE)
 
 clean:
-	rm -rf faultsim
-	rm -rf src/*.o
-	cd doc && make clean
+	@rm -vf $(EXECUTABLE)
+	@rm -rvf $(OBJDIR)
 
-doc:
-	cd doc && make
+depend: $(OBJDIR)/.depend
 
+
+$(OBJDIR)/.depend: $(SOURCES)
+	@mkdir -p $(OBJDIR)
+	@rm -f $(OBJDIR)/.depend
+	@$(foreach SRC, $(SOURCES), $(CXX) $(CXXFLAGS) -MM -MT $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC)) $(SRC) >> $(OBJDIR)/.depend ;)
+
+ifneq ($(MAKECMDGOALS),clean)
+-include $(OBJDIR)/.depend
+endif
+
+
+$(EXECUTABLE): $(OBJECTS) $(SRCDIR)/*.hh | depend
+	$(CXX) $(LDFLAGS) $(OBJECTS) $(LDLIBS) -o $@
+
+$(OBJECTS): | $(OBJDIR)
+
+$(OBJDIR):
+	@mkdir -p $@
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
+	$(COMPILE.cc) -o $@ $<
+
+.PHONY: all clean depend
