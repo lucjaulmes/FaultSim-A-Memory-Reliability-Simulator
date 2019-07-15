@@ -287,14 +287,13 @@ void DRAMDomain::scrub()
 	FaultDomain::scrub();
 
 	// delete all transient faults
-	std::list<FaultRange *>::iterator it;
-	for (it = m_faultRanges.begin(); it != m_faultRanges.end(); it++)
+	for (auto it = m_faultRanges.begin(); it != m_faultRanges.end(); )
 	{
-		if ((*it)->transient)
-		{
-			if ((*it)->transient_remove)
-				it = m_faultRanges.erase(it);
-		}
+		FaultRange *fr = *it;
+		if (fr->transient && fr->transient_remove)
+			it = m_faultRanges.erase(it);
+		else
+			it++;
 	}
 }
 
