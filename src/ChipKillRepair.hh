@@ -29,7 +29,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class ChipKillRepair : public RepairScheme
 {
 public:
-	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect);
+	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size = 3);
 
 	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
 	uint64_t fill_repl(FaultDomain *fd);
@@ -37,7 +37,7 @@ public:
 	void resetStats();
 
 private:
-	uint64_t m_n_correct, m_n_detect;
+	uint64_t m_n_correct, m_n_detect, m_symbol_mask;
 };
 
 

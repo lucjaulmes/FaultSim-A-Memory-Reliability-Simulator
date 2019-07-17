@@ -24,8 +24,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ChipKillRepair.hh"
 #include "DRAMDomain.hh"
 
-ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect)
-	: RepairScheme(name), m_n_correct(n_sym_correct), m_n_detect(n_sym_detect)
+ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size)
+	: RepairScheme(name), m_n_correct(n_sym_correct), m_n_detect(n_sym_detect), m_symbol_mask((1ULL << log_symbol_size) - 1)
 {
 }
 
@@ -43,16 +43,16 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 		for (FaultRange *fr: dynamic_cast<DRAMDomain*>(chip)->getRanges())
 			fr->touched = 0;
 
-	// Take each chip in turn.  For every fault range, count the number of intersecting faults (rounded to an 8-bit range).
+	// Take each chip in turn.  For every fault range, count the number of intersecting faults (rounded to a symbol size).
 	// If count exceeds correction ability, fail.
 	for (FaultDomain *chip0: pChips)
 	{
 		// For each fault in a chip, query the following chips to see if they have intersecting fault ranges.
 		for (FaultRange *frOrg: dynamic_cast<DRAMDomain*>(chip0)->getRanges())
 		{
-			// tweak the query range to cover 8-bit block on a copy, otherwise fault is modified as a side-effect
+			// tweak the query range to cover a full symbol. Do this on a copy, otherwise fault is modified as a side-effect
 			FaultRange frTemp = *frOrg;
-			frTemp.fWildMask |= ((0x1 << 3) - 1);
+			frTemp.fWildMask |= m_symbol_mask;
 			uint32_t n_intersections = 0;
 			if (frTemp.touched < frTemp.max_faults)
 			{
