@@ -31,7 +31,7 @@ class CubeRAIDRepair : public RepairScheme
 public:
 	CubeRAIDRepair(std::string name, uint n_sym_correct, uint n_sym_detect, uint detect_block_bytes);
 
-	void repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable);
+	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
 	uint64_t fill_repl(FaultDomain *fd);
 	void printStats();
 	void resetStats();

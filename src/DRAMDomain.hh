@@ -37,7 +37,7 @@ public:
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
 	void init(uint64_t interval, uint64_t sim_seconds, double fit_factor);
 	int update(uint test_mode_t);   // perform one iteration
-	void repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable);
+	std::pair<uint64_t, uint64_t> repair();
 	void scrub();
 	virtual void reset();
 

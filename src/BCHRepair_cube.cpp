@@ -36,9 +36,9 @@ BCHRepair_cube::BCHRepair_cube(std::string name, int n_correct, int n_detect, ui
 	m_log_block_bits = log2(data_block_bits);
 }
 
-void BCHRepair_cube::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable)
+std::pair<uint64_t, uint64_t> BCHRepair_cube::repair(FaultDomain *fd)
 {
-	n_undetectable = n_uncorrectable = 0;
+	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 
 	// Repair up to N bit faults in a single block
 	std::list<FaultDomain *> *pChips = fd->getChildren();
@@ -124,13 +124,15 @@ void BCHRepair_cube::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t 
 				{
 					n_uncorrectable += (n_intersections - m_n_correct);
 					frOrg->transient_remove = false;
-					if (!settings.continue_running) return;
+					if (!settings.continue_running)
+						return std::make_pair(n_undetectable, n_uncorrectable);
 				}
 				if (n_intersections >= m_n_detect)
 					n_undetectable += (n_intersections - m_n_detect);
 			}
 		}
 	}
+	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
 uint64_t BCHRepair_cube::fill_repl(FaultDomain *fd)

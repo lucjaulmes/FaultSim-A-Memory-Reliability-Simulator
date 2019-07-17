@@ -23,11 +23,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FAULTDOMAIN_HH_
 
 #include <list>
+#include <tuple>
 #include <vector>
 #include <string>
 
 #include "FaultRange.hh"
 #include "dram_common.hh"
+
 class RepairScheme;
 
 
@@ -43,9 +45,9 @@ public:
 	uint64_t getFaultCountUndetected();
 	uint64_t getFailedSimCount();
 
-	virtual int update(uint
-	    test_mode_t); // perform one iteration ; Prashant: Changed the update to return a non-void value
-	virtual void repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable);
+	// perform one iteration ; Prashant: Changed the update to return a non-void value
+	virtual int update(uint test_mode_t);
+	virtual std::pair<uint64_t, uint64_t> repair();
 	virtual uint64_t fill_repl();
 	virtual void scrub();
 	void addDomain(FaultDomain *domain, uint32_t domaincounter);

@@ -227,7 +227,7 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 					fd->dumpState();
 				}
 
-				fd->repair(n_undetected, n_uncorrected);
+				std::tie(n_undetected, n_uncorrected) = fd->repair();
 
 				if (verbose == 2)
 				{

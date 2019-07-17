@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define REPAIRSCHEME_HH_
 
 #include <list>
+#include <tuple>
 #include <string>
 #include "FaultDomain.hh"
 
@@ -32,7 +33,7 @@ public:
 	RepairScheme(std::string name);
 	std::string getName();
 
-	virtual void repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable) = 0;
+	virtual std::pair<uint64_t, uint64_t> repair(FaultDomain *fd) = 0;
 	virtual uint64_t fill_repl(FaultDomain *fd);
 	virtual void clear_counters() {};
 

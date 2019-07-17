@@ -31,9 +31,9 @@ BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t dev
 {
 }
 
-void BCHRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable)
+std::pair<uint64_t, uint64_t> BCHRepair::repair(FaultDomain *fd)
 {
-	n_undetectable = n_uncorrectable = 0;
+	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 
 	// Repair up to N bit faults in a single row.
 	// Similar to ChipKill except that only 1 bit can be bad across all devices, instead of 1 symbol being bad.
@@ -100,23 +100,26 @@ void BCHRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_un
 				{
 					n_undetectable += n_intersections - m_n_detect;
 					frOrg->transient_remove = false;
-					return;
+					return std::make_pair(n_undetectable, n_uncorrectable);
 				}
 				else if (n_intersections > m_n_correct)
 				{
 					n_uncorrectable += n_intersections - m_n_correct;
 					frOrg->transient_remove = false;
-					return;
+					return std::make_pair(n_undetectable, n_uncorrectable);
 				}
 
 			}
 		}
 	}
+	return std::make_pair(n_undetectable, n_uncorrectable);
 }
+
 uint64_t BCHRepair::fill_repl(FaultDomain *fd)
 {
 	return 0;
 }
+
 void BCHRepair::printStats()
 {
 	RepairScheme::printStats();

@@ -36,9 +36,9 @@ CubeRAIDRepair::CubeRAIDRepair(std::string name, uint n_sym_correct, uint n_sym_
 	m_log_block_bits = log2(m_data_block_bits);
 }
 
-void CubeRAIDRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable)
+std::pair<uint64_t, uint64_t> CubeRAIDRepair::repair(FaultDomain *fd)
 {
-	n_undetectable = n_uncorrectable = 0;
+	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	// Repair this module.  Assume 8-bit symbols.
 
 	std::list<FaultDomain *> *pChips = fd->getChildren();
@@ -100,12 +100,14 @@ void CubeRAIDRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t 
 				n_uncorrectable += (n_intersections + 1 - m_n_correct);
 				frOrg0->transient_remove = false;
 
-				if (!settings.continue_running) return;
+				if (!settings.continue_running)
+					return std::make_pair(n_undetectable, n_uncorrectable);
 			}
 			if (n_intersections >= m_n_detect)
 				n_undetectable += (n_intersections + 1 - m_n_detect);
 		}
 	}
+	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
 uint64_t CubeRAIDRepair::fill_repl(FaultDomain *fd)

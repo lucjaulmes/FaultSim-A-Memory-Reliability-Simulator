@@ -31,12 +31,12 @@ class ChipKillRepair_cube : public RepairScheme
 public:
 	ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect, FaultDomain *fd);
 
-	void repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable);
+	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
 	uint64_t fill_repl(FaultDomain *fd);
 	void printStats();
 	void resetStats();
-	void repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint64_t &n_uncorrect);
-	void repair_vc(FaultDomain *fd, uint64_t &n_undetect, uint64_t &n_uncorrect);
+	std::pair<uint64_t, uint64_t> repair_hc(FaultDomain *fd);
+	std::pair<uint64_t, uint64_t> repair_vc(FaultDomain *fd);
 	int64_t getbank_number(FaultRange fr_number);
 private:
 	uint64_t m_n_correct, m_n_detect;

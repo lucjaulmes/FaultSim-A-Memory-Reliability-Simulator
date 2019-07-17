@@ -221,10 +221,10 @@ int DRAMDomain::update(uint test_mode_t)
 }
 
 
-void DRAMDomain::repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable)
+std::pair<uint64_t, uint64_t> DRAMDomain::repair()
 {
 	// override the remaining number of uncorrectable faults seen based on repair results
-	FaultDomain::repair(n_undetectable, n_uncorrectable);
+	return FaultDomain::repair();
 }
 
 bool first_time = 1;

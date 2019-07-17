@@ -38,20 +38,19 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 	banks = DRAMchip->getBanks();
 }
 
-void ChipKillRepair_cube::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(FaultDomain *fd)
 {
-	n_undetectable = n_uncorrectable = 0;
 	//Choose the algorithm based on the whether its modelled as vertical channels or horizontal channels
 	if (fd->cube_model_enable == 1)
-		repair_hc(fd, n_undetectable, n_uncorrectable);
+		return repair_hc(fd);
 	else
-		repair_vc(fd, n_undetectable, n_uncorrectable);
+		return repair_vc(fd);
 }
 
 
-void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint64_t &n_uncorrect)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_hc(FaultDomain *fd)
 {
-	n_undetect = n_uncorrect = 0;
+	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	std::list<FaultDomain *> *pChips = fd->getChildren();
 	//Initialize the counters to count chips
 	uint64_t counter1 = 0;
@@ -208,15 +207,18 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 				}
 			}
 			if (n_intersections > m_n_correct)
-				n_uncorrect = (n_intersections - m_n_correct) + n_uncorrect;
+				n_uncorrectable += n_intersections - m_n_correct;
 			if (n_intersections > m_n_detect)
-				n_undetect = (n_intersections - m_n_detect) + n_undetect;
+				n_undetectable += n_intersections - m_n_detect;
 		}
 	}
+	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
-void ChipKillRepair_cube::repair_vc(FaultDomain *fd, uint64_t &n_undetect, uint64_t &n_uncorrect)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_vc(FaultDomain *fd)
 {
+	uint64_t n_undetectable = 0, n_uncorrectable = 0;
+	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
 int64_t ChipKillRepair_cube::getbank_number(FaultRange frTemp)

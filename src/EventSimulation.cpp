@@ -152,7 +152,7 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 		}
 
 		errors = 0;
-		m_domains.front()->repair(n_undetected, n_uncorrected);  //Calls repair  function
+		std::tie(n_undetected, n_uncorrected) = m_domains.front()->repair();  //Calls repair  function
 		if (verbose == 2)
 		{
 			// Dump all FaultRanges after

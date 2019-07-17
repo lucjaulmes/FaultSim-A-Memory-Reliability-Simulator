@@ -33,7 +33,7 @@ public:
 	// across all the chips
 	BCHRepair_cube(std::string name, int n_correct, int n_detect, uint64_t data_block_bits);
 	uint64_t fill_repl(FaultDomain *fd);
-	void repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable);
+	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
 
 	void printStats();
 	void resetStats();

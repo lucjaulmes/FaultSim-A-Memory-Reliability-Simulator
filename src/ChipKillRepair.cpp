@@ -29,9 +29,9 @@ ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_de
 {
 }
 
-void ChipKillRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_uncorrectable)
+std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 {
-	n_undetectable = n_uncorrectable = 0;
+	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	// Repair this module, assuming 8-bit symbols.
 
 	std::list<FaultDomain *> *pChips = fd->getChildren();
@@ -84,6 +84,8 @@ void ChipKillRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t 
 			}
 		}
 	}
+
+	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
 uint64_t ChipKillRepair::fill_repl(FaultDomain *fd)

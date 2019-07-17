@@ -157,17 +157,16 @@ void FaultDomain::addRepair(RepairScheme *repair)
 }
 
 
-void FaultDomain::repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable)
+std::pair<uint64_t, uint64_t> FaultDomain::repair()
 {
-	n_uncorrectable = 0;
-	n_undetectable = 0;
+	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 
 	// repair all children
 
 	for (FaultDomain *fd: m_children)
 	{
 		uint64_t child_undet, child_uncorr;
-		fd->repair(child_undet, child_uncorr);
+		std::tie(child_undet, child_uncorr) = fd->repair();
 		n_uncorrectable += child_uncorr;
 		n_undetectable += child_undet;
 	}
@@ -181,7 +180,7 @@ void FaultDomain::repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable)
 	{
 		uint64_t uncorrectable_after_repair = 0;
 		uint64_t undetectable_after_repair = 0;
-		rs->repair(this, undetectable_after_repair, uncorrectable_after_repair);
+		std::tie(undetectable_after_repair, uncorrectable_after_repair) = rs->repair(this);
 
 		if (n_uncorrectable > uncorrectable_after_repair)
 			n_uncorrectable = uncorrectable_after_repair;
@@ -207,7 +206,7 @@ void FaultDomain::repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable)
 	if (n_uncorrectable > 0)
 		n_errors_uncorrected++;
 
-	//return n_uncorrectable;
+	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
 uint64_t FaultDomain::fill_repl()
