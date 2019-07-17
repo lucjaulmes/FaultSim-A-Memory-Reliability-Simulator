@@ -35,45 +35,29 @@ void BCHRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_un
 {
 	n_undetectable = n_uncorrectable = 0;
 
-	// Repair up to N bit faults in a single row
-	// Similar to ChipKill except that only 1 bit can be bad across
-	// all devices, instead of 1 symbol being bad.
-	uint bit_shift = 0;
-	uint loopcount_locations = 0;
-	uint ii = 0;
+	// Repair up to N bit faults in a single row.
+	// Similar to ChipKill except that only 1 bit can be bad across all devices, instead of 1 symbol being bad.
 	std::list<FaultDomain *> *pChips = fd->getChildren();
-	//assert( pChips->size() == (m_n_repair * 18) );
 
-	for (std::list<FaultDomain *>::iterator it1 = pChips->begin(); it1 != pChips->end(); it1++)
-	{
-		DRAMDomain *pDRAM3 = dynamic_cast<DRAMDomain *>((*it1));
-		std::list<FaultRange *> *pRange3 = pDRAM3->getRanges();
-		std::list<FaultRange *>::iterator itRange3;
-		for (itRange3 = pRange3->begin(); itRange3 != pRange3->end(); itRange3++)
-		{
-			FaultRange *fr3 = (*itRange3);
-			fr3->touched = 0;
-		}
-	}
+	for (FaultDomain *fd: *pChips)
+		for (FaultRange *fr: *dynamic_cast<DRAMDomain*>(fd)->getRanges())
+			fr->touched = 0;
+
 	// Take each chip in turn.  For every fault range, compare with all chips including itself, any intersection of
 	// fault range is treated as a fault. if count exceeds correction ability, fail.
-	for (std::list<FaultDomain *>::iterator it0 = pChips->begin(); it0 != pChips->end(); it0++)
+	for (FaultDomain *fd0: *pChips)
 	{
-		DRAMDomain *pDRAM0 = dynamic_cast<DRAMDomain *>((*it0));
-		std::list<FaultRange *> *pRange0 = pDRAM0->getRanges();
-
 		// For each fault in first chip, query the second chip to see if it has
 		// an intersecting fault range, touched variable tells us about the location being already addressed or not
-		std::list<FaultRange *>::iterator itRange0;
-		for (itRange0 = pRange0->begin(); itRange0 != pRange0->end(); itRange0++)
+		for (FaultRange *frOrg: *dynamic_cast<DRAMDomain *>(fd0)->getRanges())
 		{
-			FaultRange *frOrg = (*itRange0); // The pointer to the fault location
-			FaultRange frTemp = *(*itRange0); //This is a fault location of a chip
+			FaultRange frTemp = *frOrg; // This is a fault location of a chip
 
 			uint32_t n_intersections = 0;
 
 			if (frTemp.touched < frTemp.max_faults)
 			{
+				unsigned bit_shift = 0;
 				if (m_n_correct == 1) // Depending on the scheme, we will need to group the bits
 				{
 					bit_shift = 2;  //SECDED will give ECC every 8 byte granularity, group by 4 locations in the fault range per chip
@@ -94,44 +78,37 @@ void BCHRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t &n_un
 				frTemp.fAddr = frTemp.fAddr << bit_shift;
 				frTemp.fWildMask = frTemp.fWildMask >> bit_shift;
 				frTemp.fWildMask = frTemp.fWildMask << bit_shift;
-				loopcount_locations = 1 << bit_shift; // This gives me the number of loops for the addresses near the fault range to iterate
+				// This gives me the number of loops for the addresses near the fault range to iterate
+				unsigned loopcount_locations = 1 << bit_shift;
 
-				for (ii = 0; ii < loopcount_locations; ii++)
+				for (unsigned ii = 0; ii < loopcount_locations; ii++)
 				{
 					// for each other chip including the current one, count number of intersecting faults
-					for (std::list<FaultDomain *>::iterator it1 = pChips->begin(); it1 != pChips->end(); it1++)
-					{
-						DRAMDomain *pDRAM1 = dynamic_cast<DRAMDomain *>((*it1));
-						std::list<FaultRange *> *pRange1 = pDRAM1->getRanges();
-						for (std::list<FaultRange *>::iterator itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
-						{
-							FaultRange *fr1 = (*itRange1);
+					for (FaultDomain *fd1: *pChips)
+						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 							if (frTemp.intersects(fr1) && (fr1->touched < fr1->max_faults))
 							{
 								// immediately move on to the next chip, we don't care about other ranges
 								n_intersections += 1;
 								break;
 							}
-						}
-					}
+
 					frTemp.fAddr = frTemp.fAddr + 1;
 				}
 
-				if (n_intersections <= m_n_correct)
+				if (n_intersections > m_n_detect)
 				{
-					// correctable
-				}
-				if (n_intersections > m_n_correct)
-				{
-					n_uncorrectable = (n_intersections - m_n_correct) + n_uncorrectable;
+					n_undetectable += n_intersections - m_n_detect;
 					frOrg->transient_remove = false;
 					return;
 				}
-				if (n_intersections > m_n_detect)
+				else if (n_intersections > m_n_correct)
 				{
-					n_undetectable = (n_intersections - m_n_detect) + n_undetectable;
+					n_uncorrectable += n_intersections - m_n_correct;
+					frOrg->transient_remove = false;
 					return;
 				}
+
 			}
 		}
 	}

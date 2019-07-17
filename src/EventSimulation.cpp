@@ -69,9 +69,9 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 	int err_inserted = 0;
 
 	int devices = 0;
-	for (std::list<FaultDomain *>::iterator it1 = pChips->begin(); it1 != pChips->end(); it1++)
+	for (FaultDomain *fd: *pChips)
 	{
-		DRAMDomain *pD = (DRAMDomain *)(*it1);
+		DRAMDomain *pD = dynamic_cast<DRAMDomain *>(fd);
 		double period = 0;
 		for (int errtype = 0; errtype < DRAM_MAX * 2; errtype++)
 		{
@@ -205,10 +205,10 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 		new_scrubid = fr->timestamp / m_scrub_interval;
 		if (new_scrubid != old_scrubid)
 		{
-			for (std::list<FaultDomain *>::iterator it = m_domains.begin(); it != m_domains.end(); it++)
+			for (FaultDomain *fd: m_domains)
 			{
-				(*it)->scrub();
-				if ((*it)->fill_repl())
+				fd->scrub();
+				if (fd->fill_repl())
 				{
 					finalize();
 					return 1;

@@ -59,26 +59,20 @@ void Simulation::addDomain(FaultDomain *domain)
 
 void Simulation::init(uint64_t max_s)
 {
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_domains.begin(); it != m_domains.end(); it++)
-		(*it)->init(m_interval, max_s, m_fit_factor);
+	for (FaultDomain *fd: m_domains)
+		fd->init(m_interval, max_s, m_fit_factor);
 }
 
 void Simulation::reset()
 {
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_domains.begin(); it != m_domains.end(); it++)
-		(*it)->reset();
+	for (FaultDomain *fd: m_domains)
+		fd->reset();
 }
 
 void Simulation::finalize()
 {
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_domains.begin(); it != m_domains.end(); it++)
-		(*it)->finalize();
+	for (FaultDomain *fd: m_domains)
+		fd->finalize();
 }
 
 void Simulation::resetStats()
@@ -215,13 +209,11 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 	for (uint64_t iter = 0; iter < max_iterations; iter++)
 	{
 		// loop through all fault domains and update
-		std::list<FaultDomain *>::iterator it;
-
-		for (it = m_domains.begin(); it != m_domains.end(); it++)
+		for (FaultDomain *fd: m_domains)
 		{
 
 			//Insert Faults Hierarchially: GroupDomain -> Lower Domains -> .. ; since (time between updates) << (Total Running Time), faults can be assumed to be inserted instantaneously
-			int newfault = (*it)->update(test_mode);
+			int newfault = fd->update(test_mode);
 			uint64_t n_undetected = 0;
 			uint64_t n_uncorrected = 0;
 
@@ -232,16 +224,16 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 				{
 					// Dump all FaultRanges before
 					std::cout << "FAULTS INSERTED: BEFORE REPAIR\n";
-					(*it)->dumpState();
+					fd->dumpState();
 				}
 
-				(*it)->repair(n_undetected, n_uncorrected);
+				fd->repair(n_undetected, n_uncorrected);
 
 				if (verbose == 2)
 				{
 					// Dump all FaultRanges after
 					std::cout << "FAULTS INSERTED: AFTER REPAIR\n";
-					(*it)->dumpState();
+					fd->dumpState();
 				}
 			}
 
@@ -270,7 +262,6 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 			else
 			{
 				if (n_undetected || n_uncorrected)
-
 				{
 					errors++;
 
@@ -281,9 +272,6 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 						fail_uncorrectable[bin]++;
 					if (n_undetected > 0)
 						fail_undetectable[bin]++;
-
-
-
 				}
 			}
 
@@ -291,19 +279,17 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 
 		// Check if the time to scrub the domain has arrived
 		if ((iter % scrub_ratio) == 0)
-		{
-			for (it = m_domains.begin(); it != m_domains.end(); it++)
+			for (FaultDomain *fd: m_domains)
 			{
-				(*it)->scrub();
+				fd->scrub();
 
 				//User Defined Special operation to be performed while Scrubbing
-				if ((*it)->fill_repl())
+				if (fd->fill_repl())
 				{
 					finalize();
 					return 1;
 				}
 			}
-		}
 	}
 
 	/***********************************************/
@@ -320,12 +306,10 @@ void Simulation::getFaultCounts(uint64_t *pTrans, uint64_t *pPerm)
 	uint64_t sum_perm = 0;
 	uint64_t sum_trans = 0;
 
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_domains.begin(); it != m_domains.end(); it++)
+	for (FaultDomain *fd: m_domains)
 	{
-		sum_perm += (*it)->getFaultCountPerm();
-		sum_trans += (*it)->getFaultCountTrans();
+		sum_perm += fd->getFaultCountPerm();
+		sum_trans += fd->getFaultCountTrans();
 	}
 
 	*pTrans = sum_trans;
@@ -337,10 +321,9 @@ void Simulation::printStats()
 	std::cout << "\n";
 	// loop through all domains and report itemized, failures
 	// while aggregating them to calculate overall stats
-	std::list<FaultDomain *>::iterator it;
 
-	for (it = m_domains.begin(); it != m_domains.end(); it++)
-		(*it)->printStats();
+	for (FaultDomain *fd: m_domains)
+		fd->printStats();
 
 	std::cout << "\n";
 }

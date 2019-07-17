@@ -67,28 +67,22 @@ void FaultDomain::reset()
 	n_errors_undetected = n_errors_uncorrected = 0; // used to indicate whether the domain failed during a single simulation
 	stat_n_simulations++;
 
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		(*it)->reset();
+	for (FaultDomain *fd: m_children)
+		fd->reset();
 }
 
 void FaultDomain::dumpState()
 {
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		(*it)->dumpState();
+	for (FaultDomain *fd: m_children)
+		fd->dumpState();
 }
 
 uint64_t FaultDomain::getFaultCountTrans()
 {
 	uint64_t sum = 0;
 
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		sum += (*it)->getFaultCountTrans();
+	for (FaultDomain *fd: m_children)
+		sum += fd->getFaultCountTrans();
 
 	sum += n_faults_transient;
 
@@ -99,10 +93,8 @@ uint64_t FaultDomain::getFaultCountPerm()
 {
 	uint64_t sum = 0;
 
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		sum += (*it)->getFaultCountPerm();
+	for (FaultDomain *fd: m_children)
+		sum += fd->getFaultCountPerm();
 
 	sum += n_faults_permanent;
 
@@ -144,25 +136,18 @@ void FaultDomain::init(uint64_t interval, uint64_t sim_seconds, double fit_facto
 	m_sim_seconds = sim_seconds;
 	m_fit_factor = fit_factor;
 
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		(*it)->init(interval, sim_seconds, fit_factor);
+	for (FaultDomain *fd: m_children)
+		fd->init(interval, sim_seconds, fit_factor);
 }
 
 int FaultDomain::update(uint test_mode_t)
 {
 	int return_val = 0;
-	int temp = 0;
-	std::list<FaultDomain *>::iterator it;
 
-	for (it = m_children.begin(); it != m_children.end(); it++)
-	{
-		temp = ((*it)->update(test_mode_t));
-
-		if (temp == 1)
+	for (FaultDomain *fd: m_children)
+		if (fd->update(test_mode_t) == 1)
 			return_val = 1;
-	}
+
 	return return_val;
 }
 
@@ -171,7 +156,6 @@ void FaultDomain::addRepair(RepairScheme *repair)
 	m_repairSchemes.push_back(repair);
 }
 
-#define min(a,b) (a<b) ? a : b
 
 void FaultDomain::repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable)
 {
@@ -180,37 +164,36 @@ void FaultDomain::repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable)
 
 	// repair all children
 
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
+	for (FaultDomain *fd: m_children)
 	{
 		uint64_t child_undet, child_uncorr;
-		(*it)->repair(child_undet, child_uncorr);
+		fd->repair(child_undet, child_uncorr);
 		n_uncorrectable += child_uncorr;
 		n_undetectable += child_undet;
 	}
 
 	// repair myself
-	std::list<RepairScheme *>::iterator itr;
-
 	// default to the number of faults in myself and all children, in case there are no repair schemes
 	uint64_t faults_before_repair = getFaultCountPerm() + getFaultCountTrans();
 	n_undetectable = n_uncorrectable = faults_before_repair;
 
-	for (itr = m_repairSchemes.begin(); itr != m_repairSchemes.end(); itr++)
+	for (RepairScheme *rs: m_repairSchemes)
 	{
 		uint64_t uncorrectable_after_repair = 0;
 		uint64_t undetectable_after_repair = 0;
-		(*itr)->repair(this, undetectable_after_repair, uncorrectable_after_repair);
-		n_uncorrectable = min(n_uncorrectable, uncorrectable_after_repair);
-		n_undetectable = min(n_undetectable, undetectable_after_repair);
+		rs->repair(this, undetectable_after_repair, uncorrectable_after_repair);
+
+		if (n_uncorrectable > uncorrectable_after_repair)
+			n_uncorrectable = uncorrectable_after_repair;
+		if (n_undetectable > undetectable_after_repair)
+			n_undetectable = undetectable_after_repair;
 
 		// if any repair happened, dump
 		if (debug)
 		{
 			if (faults_before_repair != 0)
 			{
-				std::cout << ">>> REPAIR " << m_name << " USING " << (*itr)->getName() << " (state dump)\n";
+				std::cout << ">>> REPAIR " << m_name << " USING " << rs->getName() << " (state dump)\n";
 				dumpState();
 				std::cout << "FAULTS_BEFORE: " << faults_before_repair << " FAULTS_AFTER: " << n_uncorrectable << "\n";
 				std::cout << "<<< END\n";
@@ -226,27 +209,25 @@ void FaultDomain::repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable)
 
 	//return n_uncorrectable;
 }
+
 uint64_t FaultDomain::fill_repl()
 {
 	uint64_t n_uncorrectable = 0;
 
 	// fill_repl for all children
 
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		n_uncorrectable += (*it)->fill_repl();
+	for (FaultDomain *fd: m_children)
+		n_uncorrectable += fd->fill_repl();
 
 	// fill_repl myself
-	std::list<RepairScheme *>::iterator itr;
-
 	// default to the number of errors in myself and all children, in case there are no repair schemes
 	n_uncorrectable = getFaultCountPerm() + getFaultCountTrans();
 
-	for (itr = m_repairSchemes.begin(); itr != m_repairSchemes.end(); itr++)
+	for (RepairScheme *rs: m_repairSchemes)
 	{
-		uint64_t uncorrectable_after_repair = (*itr)->fill_repl(this);
-		n_uncorrectable = min(n_uncorrectable, uncorrectable_after_repair);
+		uint64_t uncorrectable_after_repair = rs->fill_repl(this);
+		if (n_uncorrectable > uncorrectable_after_repair)
+			n_uncorrectable = uncorrectable_after_repair;
 	}
 
 	if (n_uncorrectable)
@@ -254,6 +235,7 @@ uint64_t FaultDomain::fill_repl()
 
 	return n_uncorrectable;
 }
+
 void FaultDomain::setFIT_TSV(bool isTransient_TSV, double FIT_TSV)
 {
 	if (isTransient_TSV)
@@ -261,14 +243,12 @@ void FaultDomain::setFIT_TSV(bool isTransient_TSV, double FIT_TSV)
 	else
 		tsv_permanentFIT = FIT_TSV;
 }
+
 void FaultDomain::scrub()
 {
 	// repair all children
-
-	std::list<FaultDomain *>::iterator it;
-
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		(*it)->scrub();
+	for (FaultDomain *fd: m_children)
+		fd->scrub();
 }
 
 uint64_t FaultDomain::getFailedSimCount()
@@ -282,23 +262,19 @@ void FaultDomain::finalize()
 	// If 1 or more children had a fault, record a failed simulation
 	// at this level of the hierarchy.
 
-	std::list<FaultDomain *>::iterator it;
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		(*it)->finalize();
+	for (FaultDomain *fd: m_children)
+		fd->finalize();
 
 	// RAW error rates
-	bool failure = false;
-	if (getFaultCountPerm() + getFaultCountTrans() != 0)
-		failure = true;
+	bool failure = (getFaultCountPerm() + getFaultCountTrans()) != 0;
 
-	for (it = m_children.begin(); it != m_children.end(); it++)
-	{
-		if ((*it)->getFaultCountPerm() + (*it)->getFaultCountTrans() != 0)
-		{
-			failure = true;
-			break;
-		}
-	}
+	if (!failure)
+		for (FaultDomain *fd: m_children)
+			if (fd->getFaultCountPerm() + fd->getFaultCountTrans() != 0)
+			{
+				failure = true;
+				break;
+			}
 
 	if (failure)
 		stat_n_failures++;
@@ -309,27 +285,27 @@ void FaultDomain::finalize()
 
 	if (getFaultCountUncorrected() != 0)
 		stat_n_failures_uncorrected++;
-	// clear repair counters
 
-	std::list<RepairScheme *>::iterator itr;
-	for (itr = m_repairSchemes.begin(); itr != m_repairSchemes.end(); itr++)
-		(*itr)->clear_counters();
+	// clear repair counters
+	for (RepairScheme *rs: m_repairSchemes)
+		rs->clear_counters();
 }
 
 void FaultDomain::printStats()
 {
-	std::list<FaultDomain *>::iterator it;
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		(*it)->printStats();
+	for (FaultDomain *fd: m_children)
+		fd->printStats();
+
+	double sim_seconds_to_FIT = 3600e9 / m_sim_seconds;
 
 	double device_fail_rate = ((double)stat_n_failures) / ((double)stat_n_simulations);
-	double FIT_raw = device_fail_rate * ((double)60 * 60 * 1000000000) / ((double)m_sim_seconds);
+	double FIT_raw = device_fail_rate * sim_seconds_to_FIT;
 
 	double uncorrected_fail_rate = ((double)stat_n_failures_uncorrected) / ((double)stat_n_simulations);
-	double FIT_uncorr = uncorrected_fail_rate * ((double)60 * 60 * 1000000000) / ((double)m_sim_seconds);
+	double FIT_uncorr = uncorrected_fail_rate * sim_seconds_to_FIT;
 
 	double undetected_fail_rate = ((double)stat_n_failures_undetected) / ((double)stat_n_simulations);
-	double FIT_undet = undetected_fail_rate * ((double)60 * 60 * 1000000000) / ((double)m_sim_seconds);
+	double FIT_undet = undetected_fail_rate * sim_seconds_to_FIT;
 
 	std::cout << "[" << m_name << "] sims " << stat_n_simulations << " failed_sims " << stat_n_failures
 	    << " rate_raw " << device_fail_rate << " FIT_raw " << FIT_raw
@@ -342,13 +318,9 @@ void FaultDomain::resetStats()
 	stat_n_simulations = stat_n_failures = 0;
 	stat_n_failures_undetected = stat_n_failures_uncorrected = 0;
 
-	std::list<FaultDomain *>::iterator it;
+	for (FaultDomain *fd: m_children)
+		fd->resetStats();
 
-	for (it = m_children.begin(); it != m_children.end(); it++)
-		(*it)->resetStats();
-
-	std::list<RepairScheme *>::iterator it2;
-
-	for (it2 = m_repairSchemes.begin(); it2 != m_repairSchemes.end(); it2++)
-		(*it2)->resetStats();
+	for (RepairScheme *rs: m_repairSchemes)
+		rs->resetStats();
 }

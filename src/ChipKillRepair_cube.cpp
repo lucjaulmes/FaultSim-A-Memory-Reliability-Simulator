@@ -31,9 +31,7 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 	, m_n_detect(n_sym_detect)
 {
 	std::list<FaultDomain *> *pChips = fd->getChildren();
-	std::list<FaultDomain *>::iterator it0;
-	it0 = pChips->begin();
-	DRAMDomain *DRAMchip = dynamic_cast<DRAMDomain *>((*it0));
+	DRAMDomain *DRAMchip = dynamic_cast<DRAMDomain *>(pChips->front());
 	logBits = DRAMchip->getLogBits();
 	logCols = DRAMchip->getLogCols();
 	logRows = DRAMchip->getLogRows();
@@ -55,46 +53,33 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 {
 	n_undetect = n_uncorrect = 0;
 	std::list<FaultDomain *> *pChips = fd->getChildren();
-	std::list<FaultDomain *>::iterator it0, it1;
-	uint64_t ii = 0;
 	//Initialize the counters to count chips
 	uint64_t counter1 = 0;
 	uint64_t counter2 = 0;
 
 	int64_t bank_number1 = 0;
 	int64_t bank_number2 = 0;
+
 	//Clear out the touched values for all chips
-	for (it1 = pChips->begin(); it1 != pChips->end(); it1++)
-	{
-		DRAMDomain *pDRAM = dynamic_cast<DRAMDomain *>((*it1));
-		std::list<FaultRange *> *pRange3 = pDRAM->getRanges();
-		std::list<FaultRange *>::iterator itRange3;
-		for (itRange3 = pRange3->begin(); itRange3 != pRange3->end(); itRange3++)
-		{
-			FaultRange *fr1 = (*itRange3);
-			fr1->touched = 0;
-		}
-	}
+	for (FaultDomain *fd: *pChips)
+		for (FaultRange *fr: *dynamic_cast<DRAMDomain *>(fd)->getRanges())
+			fr->touched = 0;
+
 
 	//Take the 1st Chip and check if other chips also fail. We use only upto 8 chips
-	for (it0 = pChips->begin(); it0 != pChips->end(); it0++)
+	for (FaultDomain *fd0: *pChips)
 	{
-		DRAMDomain *pDRAM0 = dynamic_cast<DRAMDomain *>((*it0));
-		std::list<FaultRange *> *pRange0 = pDRAM0->getRanges();
-
-		// For each fault in first chip, query the second chip to see if it has
-		// an intersecting fault range.
-		std::list<FaultRange *>::iterator itRange0;
-		for (itRange0 = pRange0->begin(); itRange0 != pRange0->end(); itRange0++)
+		// For each fault in first chip, query the second chip to see if it has an intersecting fault range.
+		for (FaultRange *fr0: *dynamic_cast<DRAMDomain *>(fd0)->getRanges())
 		{
 			// Make a copy, otherwise fault is modified as a side-effect
-			FaultRange frTemp = *(*itRange0);
+			FaultRange frTemp = *fr0;
 			//8 Bytes are protected per chip
 			frTemp.fWildMask = ((0x1 << 6) - 1);
 			uint32_t n_intersections = 0;
 			counter2 = 0;
 			// for each other chip, count number of intersecting faults
-			for (ii = 0; ii < banks; ii++)
+			for (uint64_t ii = 0; ii < banks; ii++)
 			{
 				//Adjusting for number of banks
 				uint64_t bit_shift = logBits + logRows + logCols;
@@ -108,16 +93,11 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 				frTemp.fAddr = frTemp.fAddr | lower_addr;
 
 				//Start looping accross chips
-				for (it1 = pChips->begin(); it1 != pChips->end(); it1++)
+				for (FaultDomain *fd1: *pChips)
 				{
-					DRAMDomain *pDRAM1 = dynamic_cast<DRAMDomain *>((*it1));
-					std::list<FaultRange *> *pRange1 = pDRAM1->getRanges();
 					if (counter1 < 2 && counter2 < 2)
 					{
-						std::list<FaultRange *>::iterator itRange1;
-						for (itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
-						{
-							FaultRange *fr1 = (*itRange1);
+						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 							if (frTemp.intersects(fr1))
 							{
 								// count the intersection
@@ -125,14 +105,11 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 								fr1->touched++;
 								break;
 							}
-						}
 					}
 					if ((counter1 < 2 || counter2 < 2) && (counter1 == 4 || counter2 == 4))
 					{
-						std::list<FaultRange *>::iterator itRange1;
-						for (itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
+						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 						{
-							FaultRange *fr1 = (*itRange1);
 							bank_number2 = getbank_number(*fr1);
 							if (bank_number1 != -1 && bank_number2 != -1)
 							{
@@ -169,16 +146,11 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 								}
 
 							}
-
-
 						}
 					}
 					if (counter1 > 1 && counter1 < 4 && counter2 > 1 && counter2 < 4)
 					{
-						std::list<FaultRange *>::iterator itRange1;
-						for (itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
-						{
-							FaultRange *fr1 = (*itRange1);
+						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 							if (frTemp.intersects(fr1))
 							{
 								// count the intersection
@@ -186,14 +158,11 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 								fr1->touched++;
 								break;
 							}
-						}
 					}
 					if (((counter1 > 1 && counter1 < 4) || (counter2 > 1 && counter2 < 4)) && (counter1 == 4 || counter2 == 4))
 					{
-						std::list<FaultRange *>::iterator itRange1;
-						for (itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
+						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 						{
-							FaultRange *fr1 = (*itRange1);
 							bank_number2 = getbank_number(*fr1);
 							if (bank_number2 == ((bank_number1 >> 1) | 0x4))
 							{
@@ -209,10 +178,7 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 					}
 					if (counter1 > 4 && counter1 < 7 && counter2 > 4 && counter2 < 7)
 					{
-						std::list<FaultRange *>::iterator itRange1;
-						for (itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
-						{
-							FaultRange *fr1 = (*itRange1);
+						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 							if (frTemp.intersects(fr1))
 							{
 								// count the intersection
@@ -220,14 +186,11 @@ void ChipKillRepair_cube::repair_hc(FaultDomain *fd, uint64_t &n_undetect, uint6
 								fr1->touched++;
 								break;
 							}
-						}
 					}
 					if (((counter1 > 4 && counter1 < 7) || (counter2 > 4 && counter2 < 7)) && (counter1 == 7 || counter2 == 7))
 					{
-						std::list<FaultRange *>::iterator itRange1;
-						for (itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
+						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 						{
-							FaultRange *fr1 = (*itRange1);
 							bank_number2 = getbank_number(*fr1);
 							if (bank_number2 == (bank_number1 >> 1))
 							{

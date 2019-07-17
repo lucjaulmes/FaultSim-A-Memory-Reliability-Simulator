@@ -42,64 +42,43 @@ void CubeRAIDRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t 
 	// Repair this module.  Assume 8-bit symbols.
 
 	std::list<FaultDomain *> *pChips = fd->getChildren();
-	std::list<FaultDomain *>::iterator it0, it1;
 
 	//Clear out the touched values for all chips
-	for (it1 = pChips->begin(); it1 != pChips->end(); it1++)
-	{
-		DRAMDomain *pDRAM1 = dynamic_cast<DRAMDomain *>((*it1));
-		std::list<FaultRange *> *pRange3 = pDRAM1->getRanges();
-		std::list<FaultRange *>::iterator itRange3;
-		for (itRange3 = pRange3->begin(); itRange3 != pRange3->end(); itRange3++)
-		{
-			FaultRange *fr3 = (*itRange3);
-			fr3->touched = 0;
-		}
-	}
+	for (FaultDomain *fd: *pChips)
+		for (FaultRange *fr: *dynamic_cast<DRAMDomain *>(fd)->getRanges())
+			fr->touched = 0;
+
 	// Take each chip in turn.  For every fault range,
 	// count the number of intersecting faults.
 	// if count exceeds correction ability, fail.
-	for (it0 = pChips->begin(); it0 != pChips->end(); it0++)
+	for (FaultDomain *fd0: *pChips)
 	{
-
-		DRAMDomain *pDRAM0 = dynamic_cast<DRAMDomain *>((*it0));
-		std::list<FaultRange *> *pRange0 = pDRAM0->getRanges();
-
 		// For each fault in first chip, query the other chips to see if they have
 		// an intersecting fault range.
-		std::list<FaultRange *>::iterator itRange0;
-		for (itRange0 = pRange0->begin(); itRange0 != pRange0->end(); itRange0++)
+		for (FaultRange *frOrg0: *dynamic_cast<DRAMDomain *>(fd0)->getRanges())
 		{
-			// Make a copy, otherwise fault is modified as a side-effect
-			FaultRange *frOrg = (*itRange0); // The pointer to the fault location
-			FaultRange frTemp = *(*itRange0);
-
-			// round the FR size to that of a detection block (e.g. cache line)
-			frTemp.fWildMask |= ((1 << m_log_block_bits) - 1);
+			// Round the FR size to that of a detection block (e.g. cache line)
+			// on a copy, otherwise fault is modified as a side-effect
+			FaultRange frTemp0 = *frOrg0;
+			frTemp0.fWildMask |= ((1 << m_log_block_bits) - 1);
 
 			uint32_t n_intersections = 0;
-			if (frTemp.touched < frTemp.max_faults)
+			if (frTemp0.touched < frTemp0.max_faults)
 			{
 				// for each other chip, count number of intersecting faults
-				//it1 = it0;
-				//it1++;
-				for (it1 = pChips->begin(); it1 != pChips->end(); it1++)
+				for (FaultDomain *fd1: *pChips)
 				{
-					if (it0 == it1) continue;    // skip if we're looking at the first chip
+					if (fd0 == fd1) continue;    // skip if we're looking at the first chip
 
-					DRAMDomain *pDRAM1 = dynamic_cast<DRAMDomain *>((*it1));
-					std::list<FaultRange *> *pRange1 = pDRAM1->getRanges();
-					std::list<FaultRange *>::iterator itRange1;
-					for (itRange1 = pRange1->begin(); itRange1 != pRange1->end(); itRange1++)
+					for (FaultRange *frOrg1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 					{
-						FaultRange frTemp1 = *(*itRange1);
-
 						// round the FR size to that of a detection block (e.g. cache line)
+						FaultRange frTemp1 = *frOrg1;
 						frTemp1.fWildMask |= ((1 << m_log_block_bits) - 1);
 
 						if (frTemp1.touched < frTemp1.max_faults)
 						{
-							if (frTemp.intersects(&frTemp1))
+							if (frTemp0.intersects(&frTemp1))
 							{
 								// count the intersection
 								n_intersections++;
@@ -119,7 +98,7 @@ void CubeRAIDRepair::repair(FaultDomain *fd, uint64_t &n_undetectable, uint64_t 
 			{
 				// uncorrectable fault discovered
 				n_uncorrectable += (n_intersections + 1 - m_n_correct);
-				frOrg->transient_remove = false;
+				frOrg0->transient_remove = false;
 
 				if (!settings.continue_running) return;
 			}

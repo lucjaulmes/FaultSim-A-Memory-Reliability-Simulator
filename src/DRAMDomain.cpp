@@ -233,11 +233,8 @@ void DRAMDomain::reset()
 {
 	FaultDomain::reset();
 
-	// delete all faults
-	std::list<FaultRange *>::iterator it;
-
-	for (it = m_faultRanges.begin(); it != m_faultRanges.end(); it++)
-		delete (*it);
+	for (FaultRange *fr: m_faultRanges)
+		delete fr;
 
 	m_faultRanges.clear();
 }
@@ -248,10 +245,8 @@ void DRAMDomain::dumpState()
 	{
 		std::cout << m_name << " ";
 
-		std::list<FaultRange *>::iterator it;
-
-		for (it = m_faultRanges.begin(); it != m_faultRanges.end(); it++)
-			std::cout << (*it)->toString() << '\n';
+		for (FaultRange *fr: m_faultRanges)
+			std::cout << fr->toString() << "\n";
 	}
 }
 
@@ -496,9 +491,8 @@ void DRAMDomain::printStats()
 	// For extra verbose mode, output list of all fault ranges
 	if (settings.verbose == 2)
 	{
-		std::list<FaultRange *>::iterator it;
-		for (it = m_faultRanges.begin(); it != m_faultRanges.end(); it++)
-			std::cout << "FR " << (*it)->toString() << '\n';
+		for (FaultRange *fr: m_faultRanges)
+			std::cout << fr->toString() << '\n';
 	}
 }
 

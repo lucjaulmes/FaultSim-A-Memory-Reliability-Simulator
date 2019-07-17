@@ -1,4 +1,4 @@
-CXXFLAGS=-Wall -std=c++0x -O2
+CXXFLAGS=-Wall -O2
 LDLIBS=-lboost_program_options
 
 SRCDIR:=src
