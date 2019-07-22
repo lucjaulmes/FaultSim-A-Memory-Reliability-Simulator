@@ -19,11 +19,13 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef SETTINGS_HH_
+#define SETTINGS_HH_
+
 #include <string>
 
-class Settings
+struct Settings
 {
-public:
 	// Simulator settings
 	int sim_mode;        // Interval or Event based
 	std::string output_file;      // Output results file
@@ -60,3 +62,9 @@ public:
 	// ECC configuration
 	int repairmode;     // Type of ECC to apply
 };
+
+extern struct Settings settings;
+
+void parse_settings(const std::string &ininame);
+
+#endif // SETTINGS_HH_

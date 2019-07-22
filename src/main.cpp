@@ -25,7 +25,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 
 #include "faultsim.hh"
-#include "ConfigParser.hh"
 #include "GroupDomain.hh"
 #include "GroupDomain_dimm.hh"
 #include "GroupDomain_cube.hh"
@@ -43,13 +42,7 @@ void printBanner();
 GroupDomain *genModuleDIMM();
 GroupDomain *genModule3D();
 
-namespace
-{
-const size_t ERROR_IN_COMMAND_LINE = 1;
-const size_t SUCCESS = 0;
-const size_t ERROR_UNHANDLED_EXCEPTION = 2;
-
-} // namespace
+enum return_value { SUCCESS = 0, ERROR_IN_COMMAND_LINE = 1, ERROR_UNHANDLED_EXCEPTION = 2 };
 
 void printBanner()
 {
@@ -59,52 +52,41 @@ void printBanner()
 	std::cout << "# --------------------------------------------------------------------------------\n\n";
 }
 
-struct Settings settings;
+struct Settings settings = {0};
 
 int main(int argc, char **argv)
 {
-
-	std::string chain = "NULL";
 	printBanner();
 
+	/** Define and parse the program options */
+	namespace po = boost::program_options;
+	po::options_description desc("Options");
+	std::string configfile;
+
+	desc.add_options()
+		("help", "Print help messages")
+		("outfile", po::value<std::string>(&settings.output_file)->required(), "Output file name")
+		("configfile", po::value<std::string>(&configfile), "Indicate .ini configuration file to use");
+
+	po::variables_map vm;
 	try
 	{
-		/** Define and parse the program options
-		 */
-		namespace po = boost::program_options;
-		po::options_description desc("Options");
+		po::store(po::parse_command_line(argc, argv, desc), vm);
 
-		/** Prashant Adding Options for higher end BCH repair codes in the "mode" field and a test field to do primitive testing of cases */
-
-		desc.add_options()("help", "Print help messages")
-		("outfile", po::value<std::string>(&settings.output_file)->required(), "Output file name")
-		("configfile", po::value<std::string>(&chain), "Indicate .ini configuration file to use");
-
-		po::variables_map vm;
-		try
+		/** --help option */
+		if ((argc == 1) || vm.count("help"))
 		{
-			po::store(po::parse_command_line(argc, argv, desc), vm); // can throw
-
-			/** --help option
-			 */
-			if ((argc == 1) || vm.count("help"))
-			{
-				std::cout << "FaultSim" << std::endl << desc << std::endl;
-				return SUCCESS;
-			}
-
-			po::notify(vm); // throws on error, so do after help in case
-			// there are any problems
-		}
-		catch (po::error &e)
-		{
-			std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-			std::cerr << desc << std::endl;
-			return ERROR_IN_COMMAND_LINE;
+			std::cout << "FaultSim\n" << desc << std::endl;
+			return SUCCESS;
 		}
 
-		// application code here //
-
+		po::notify(vm);
+	}
+	catch (po::error &e)
+	{
+		std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+		std::cerr << desc << std::endl;
+		return ERROR_IN_COMMAND_LINE;
 	}
 	catch (std::exception &e)
 	{
@@ -113,13 +95,9 @@ int main(int argc, char **argv)
 		return ERROR_UNHANDLED_EXCEPTION;
 
 	}
-	std::cout << "The selected config file is: " << chain << std::endl;
-	char *config_opt = new char [chain.size() + 1];
-	strcpy(config_opt, chain.c_str());
 
-
-	parser(config_opt);
-	delete [] config_opt;
+	std::cout << "The selected config file is: " << configfile << std::endl;
+	parse_settings(configfile);
 
 	// Build the physical memory organization and attach ECC scheme /////
 	GroupDomain *module = NULL;
@@ -130,29 +108,29 @@ int main(int argc, char **argv)
 		module = genModule3D();
 
 	// Configure simulator ///////////////////////////////////////////////
-	Simulation *sim_temp;
+	std::unique_ptr<Simulation> sim;
 
 	// Simulator settings are as follows:
 	// a. The setting.interval_s (in seconds) indicates the granularity of inserting faults
-	// (not used in Event Based Simulator).
+	//    (not used in Event Based Simulator).
 	// b. The setting.scrub_s (in seconds) indicates the granularity of scrubbing transient faults.
 	// c. The setting.fit_factor indicates the multiplicative factor for fit_rates.
 	// d. The setting.debug will enable debug messages
-	// e. The setting.continue_running will enable uses to continue running even if an uncorrectable error occurs
-	// (until an undetectable error occurs.
+	// e. The setting.continue_running will enable users to continue running even if an uncorrectable error occurs
+	//    (until an undetectable error occurs).
 	// f. The settings.output_bucket_s wil bucket system failure times
-	// NOTE: The test_mode setting allows the user to inject specific faults at very FIT rates. This enables the user to test their
-	// ECC technique and also stress corner cases for fault specific ECC.
+	// NOTE: The test_mode setting allows the user to inject specific faults at very high FIT rates.
+	//		 This enables the user to test their ECC technique and also stress corner cases for fault specific ECC.
 	// NOTE: The test_mode setting is currently not implemented in the Event Based Simulator
 
 	if (settings.sim_mode == 1)
 	{
-		sim_temp = (new Simulation(settings.interval_s, settings.scrub_s, settings.fit_factor, settings.test_mode,
+		sim.reset(new Simulation(settings.interval_s, settings.scrub_s, settings.fit_factor, settings.test_mode,
 		            settings.debug, settings.continue_running, settings.output_bucket_s));
 	}
 	else if (settings.sim_mode == 2)
 	{
-		sim_temp = (new EventSimulation(settings.interval_s, settings.scrub_s, settings.fit_factor, settings.test_mode,
+		sim.reset(new EventSimulation(settings.interval_s, settings.scrub_s, settings.fit_factor, settings.test_mode,
 		            settings.debug, settings.continue_running, settings.output_bucket_s));
 	}
 	else
@@ -161,17 +139,15 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
-	Simulation &sim = *sim_temp;
-
 	// Run simulator //////////////////////////////////////////////////
-	sim.addDomain(module);      // register the top-level memory object with the simulation engine
-	sim.init(settings.max_s);    // one-time set-up that does FIT rate scaling based on interval
-	sim.simulate(settings.max_s, settings.n_sims, settings.verbose, settings.output_file);
-	sim.printStats();
+	sim->addDomain(module);       // register the top-level memory object with the simulation engine
+	sim->init(settings.max_s);    // one-time set-up that does FIT rate scaling based on interval
+	sim->simulate(settings.max_s, settings.n_sims, settings.verbose, settings.output_file);
+	sim->printStats();
 
 	return SUCCESS;
-
 }
+
 /*
  * Simulate a DIMM module
  */
@@ -335,14 +311,15 @@ GroupDomain *genModule3D()
 	}
 	else if (settings.repairmode == 2)
 	{
+		// settings.data_block_bits used as RAID is computed over 512 bits (in our design)
 		CubeRAIDRepair *ck1 = new CubeRAIDRepair(std::string("RAID"), 1, 2, settings.data_block_bits);
-		stack0->addRepair(ck1);   //settings.data_block_bits used as RAID is computed over 512 bits (in our design)
+		stack0->addRepair(ck1);
 	}
 	else if (settings.repairmode == 3)
 	{
+		// settings.data_block_bits used as SECDED/3EC4ED/6EC7ED is computed over 512 bits (in our design)
 		BCHRepair_cube *bch0 = new BCHRepair_cube(std::string("SECDED"), 1, 2, settings.data_block_bits);
-		stack0->addRepair(
-		    bch0);   //settings.data_block_bits used as SECDED/3EC4ED/6EC7ED is computed over 512 bits (in our design)
+		stack0->addRepair(bch0);
 	}
 	else if (settings.repairmode == 4)
 	{

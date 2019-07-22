@@ -19,22 +19,20 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include<iostream>
-extern struct Settings settings;
-
-#include "ConfigParser.hh"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "Settings.hh"
 #include <stdint.h>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
-void parser(char *ininame)
+#include "Settings.hh"
+
+void parse_settings(const std::string &ininame)
 {
 	boost::property_tree::ptree pt;
-	boost::property_tree::ini_parser::read_ini(ininame, pt);
+	boost::property_tree::ini_parser::read_ini(ininame.c_str(), pt);
 
 	settings.sim_mode = pt.get<int>("Sim.sim_mode");
 	settings.interval_s = pt.get<uint64_t>("Sim.interval_s");
