@@ -58,20 +58,26 @@ public:
 	uint32_t getRows();
 	uint32_t getCols();
 
-	//uint32_t getChipNumber();
 
-
-	void generateRanges(fault_class_t faultClass, bool transient);   // based on a fault, create all faulty address ranges
+	// based on a fault, create the range of all faulty addresses
+	void generateRanges(fault_class_t faultClass, bool transient);
+	FaultRange *genRandomRange(fault_class_t faultClass, bool transient);
 	FaultRange *genRandomRange(bool rank, bool bank, bool row, bool col, bool bit, bool transient, int64_t rowbit_num,
 	    bool isTSV_t);
+	double next_fault_event(fault_class_t faultClass, bool transient);
+	bool fault_in_interval(fault_class_t faultClass, bool transient);
 
 	const char *faultClassString(int i);
 
-	double transientFIT[DRAM_MAX];
-	double permanentFIT[DRAM_MAX];
+protected:
+	struct fault_param { double transient, permanent ;};
+	struct fault_param FIT_rate[DRAM_MAX];
 
-	// Parameters for event-driven simulation (hours per fault transient followed by permanent
-	double hrs_per_fault[DRAM_MAX * 2];
+	// Expected time between faults (for event-driven simulation)
+	struct fault_param secs_per_fault[DRAM_MAX];
+
+	// Probability of fault in an interval (for normal simulation)
+	struct fault_param error_probability[DRAM_MAX];
 
 	std::list<FaultRange *> m_faultRanges;
 
@@ -80,7 +86,6 @@ public:
 
 	uint64_t curr_interval;
 
-protected:
 	uint64_t n_faults_transient_class[DRAM_MAX];
 	uint64_t n_faults_permanent_class[DRAM_MAX];
 

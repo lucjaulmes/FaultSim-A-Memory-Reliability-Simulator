@@ -154,12 +154,9 @@ int main(int argc, char **argv)
 
 GroupDomain *genModuleDIMM()
 {
-	GroupDomain *dimm0;
-
 	// Create a DIMM or a CUBE
 	// settings.data_block_bits is the number of bits per transaction when you create a DIMM
-
-	dimm0 = new GroupDomain_dimm("MODULE0", settings.chips_per_rank, settings.banks, settings.data_block_bits);
+	GroupDomain *dimm0 = new GroupDomain_dimm("MODULE0", settings.chips_per_rank, settings.banks, settings.data_block_bits);
 
 	for (uint32_t i = 0; i < settings.chips_per_rank; i++)
 	{
@@ -168,33 +165,34 @@ GroupDomain *genModuleDIMM()
 		DRAMDomain *dram0 = new DRAMDomain(buf, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
 		    settings.cols);
 
+		const bool transient = true;
 		if (settings.faultmode == FM_UNIFORM_BIT)
 		{
-			if (settings.enable_transient) dram0->setFIT(DRAM_1BIT, 1, 33.05);
-			if (settings.enable_permanent) dram0->setFIT(DRAM_1BIT, 0, 33.05);
+			if (settings.enable_transient) dram0->setFIT(DRAM_1BIT, transient, 33.05);
+			if (settings.enable_permanent) dram0->setFIT(DRAM_1BIT, not transient, 33.05);
 		}
 		else if (settings.faultmode == FM_JAGUAR)
 		{
 			if (settings.enable_transient)
 			{
-				dram0->setFIT(DRAM_1BIT, 1, 14.2);
-				dram0->setFIT(DRAM_1WORD, 1, 1.4);
-				dram0->setFIT(DRAM_1COL, 1, 1.4);
-				dram0->setFIT(DRAM_1ROW, 1, 0.2);
-				dram0->setFIT(DRAM_1BANK, 1, 0.8);
-				dram0->setFIT(DRAM_NBANK, 1, 0.3);
-				dram0->setFIT(DRAM_NRANK, 1, 0.9);
+				dram0->setFIT(DRAM_1BIT,  transient, 14.2);
+				dram0->setFIT(DRAM_1WORD, transient,  1.4);
+				dram0->setFIT(DRAM_1COL,  transient,  1.4);
+				dram0->setFIT(DRAM_1ROW,  transient,  0.2);
+				dram0->setFIT(DRAM_1BANK, transient,  0.8);
+				dram0->setFIT(DRAM_NBANK, transient,  0.3);
+				dram0->setFIT(DRAM_NRANK, transient,  0.9);
 			}
 
 			if (settings.enable_permanent)
 			{
-				dram0->setFIT(DRAM_1BIT, 0, 18.6);
-				dram0->setFIT(DRAM_1WORD, 0, 0.3);
-				dram0->setFIT(DRAM_1COL, 0, 5.6);
-				dram0->setFIT(DRAM_1ROW, 0, 8.2);
-				dram0->setFIT(DRAM_1BANK, 0, 10.0);
-				dram0->setFIT(DRAM_NBANK, 0, 1.4);
-				dram0->setFIT(DRAM_NRANK, 0, 2.8);
+				dram0->setFIT(DRAM_1BIT,  not transient, 18.6);
+				dram0->setFIT(DRAM_1WORD, not transient,  0.3);
+				dram0->setFIT(DRAM_1COL,  not transient,  5.6);
+				dram0->setFIT(DRAM_1ROW,  not transient,  8.2);
+				dram0->setFIT(DRAM_1BANK, not transient, 10.0);
+				dram0->setFIT(DRAM_NBANK, not transient,  1.4);
+				dram0->setFIT(DRAM_NRANK, not transient,  2.8);
 			}
 		}
 		else
@@ -241,12 +239,10 @@ GroupDomain *genModuleDIMM()
 
 GroupDomain *genModule3D()
 {
-	GroupDomain *stack0;
-
 	// Create a stack or a CUBE
 	// settings.data_block_bits is the number of bits per transaction when you create a Cube
 
-	stack0 = new GroupDomain_cube("MODULE0", 1, settings.chips_per_rank, settings.banks, settings.data_block_bits,
+	GroupDomain *stack0 = new GroupDomain_cube("MODULE0", 1, settings.chips_per_rank, settings.banks, settings.data_block_bits,
 	    settings.cube_addr_dec_depth, settings.cube_ecc_tsv, settings.cube_redun_tsv, settings.enable_tsv);
 
 	//Set FIT rates for TSVs, these are set at the GroupDomain level as these are common to the entire cube

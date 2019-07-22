@@ -52,8 +52,7 @@ DRAMDomain::DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32
 		n_faults_transient_class[i] = 0;
 		n_faults_permanent_class[i] = 0;
 
-		transientFIT[i] = 0;
-		permanentFIT[i] = 0;
+		FIT_rate[i] = {0., 0.};
 	}
 
 	n_faults_transient_tsv = n_faults_permanent_tsv = 0;
@@ -128,9 +127,7 @@ const char *DRAMDomain::faultClassString(int i)
 
 int DRAMDomain::update(uint test_mode_t)
 {
-	int newfault0 = 0;
-	int newfault1 = 0;
-	newfault0 = FaultDomain::update(test_mode_t);
+	int newfault = FaultDomain::update(test_mode_t);
 
 	// Insert DRAM die faults
 	for (uint i = 0; i < DRAM_MAX; i++)
@@ -138,23 +135,21 @@ int DRAMDomain::update(uint test_mode_t)
 		fault_class_t f = fault_class_t(i);
 		if (test_mode_t == 0)
 		{
-			double random = gen();
-			if (random <= transientFIT[i])
+			bool transient = true;
+			if (fault_in_interval(f, transient))
 			{
 				n_faults_transient++;
 				n_faults_transient_class[i]++;
-				generateRanges(f, true);
-				newfault1 = 1;
+				generateRanges(f, transient);
+				newfault = 1;
 			}
 
-			random = gen();
-
-			if (random <= permanentFIT[i])
+			if (fault_in_interval(f, not transient))
 			{
 				n_faults_permanent++;
 				n_faults_permanent_class[i]++;
-				generateRanges(f, false);
-				newfault1 = 1;
+				generateRanges(f, not transient);
+				newfault = 1;
 			}
 
 		}
@@ -165,7 +160,7 @@ int DRAMDomain::update(uint test_mode_t)
 				n_faults_transient++;
 				n_faults_transient_class[i]++;
 				generateRanges(f, true);
-				newfault1 = 1;
+				newfault = 1;
 			}
 
 			if (i == (test_mode_t - 1))
@@ -173,7 +168,7 @@ int DRAMDomain::update(uint test_mode_t)
 				n_faults_permanent++;
 				n_faults_permanent_class[i]++;
 				generateRanges(f, false);
-				newfault1 = 1;
+				newfault = 1;
 			}
 		}
 	}
@@ -189,7 +184,7 @@ int DRAMDomain::update(uint test_mode_t)
 				{
 					n_faults_permanent++;
 					n_faults_permanent_tsv++;
-					newfault1 = 1;
+					newfault = 1;
 
 					for (uint jj = 0; jj < (m_cols * m_bitwidth / cube_data_tsv); jj++)
 					{
@@ -202,7 +197,7 @@ int DRAMDomain::update(uint test_mode_t)
 				{
 					n_faults_transient++;
 					n_faults_transient_tsv++;
-					newfault1 = 1;
+					newfault = 1;
 
 					for (uint jj = 0; jj < (m_cols * m_bitwidth / cube_data_tsv); jj++)
 					{
@@ -217,7 +212,7 @@ int DRAMDomain::update(uint test_mode_t)
 
 	curr_interval++;
 
-	return (newfault0 || newfault1);
+	return newfault;
 }
 
 
@@ -269,69 +264,83 @@ void DRAMDomain::scrub()
 void DRAMDomain::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
 {
 	if (isTransient)
-		transientFIT[faultClass] = FIT;
+		FIT_rate[faultClass].transient = FIT;
 	else
-		permanentFIT[faultClass] = FIT;
+		FIT_rate[faultClass].permanent = FIT;
+}
+
+double DRAMDomain::next_fault_event(fault_class_t faultClass, bool transient)
+{
+	double exponential_random = -log(gen());
+	if (transient)
+		return exponential_random * secs_per_fault[faultClass].transient;
+	else
+		return exponential_random * secs_per_fault[faultClass].permanent;
+}
+
+inline bool DRAMDomain::fault_in_interval(fault_class_t faultClass, bool transient)
+{
+	return gen() <= (transient ? error_probability[faultClass].transient : error_probability[faultClass].permanent);
 }
 
 void DRAMDomain::init(uint64_t interval, uint64_t sim_seconds, double fit_factor)
 {
 	FaultDomain::init(interval, sim_seconds, fit_factor);
-	// interval in seconds
 	// one-time initialization scales FIT rates to interval scale
 
-	// For Event Driven sim ////////////////////////////////////////////
-	for (int i = 0; i < DRAM_MAX; i++)
-		hrs_per_fault[i] = ((double)1000000000.0) / (transientFIT[i] * fit_factor);
-	for (int i = DRAM_MAX; i < DRAM_MAX * 2; i++)
-		hrs_per_fault[i] = ((double)1000000000.0) / (permanentFIT[i - DRAM_MAX] * fit_factor);
-	////////////////////////////////////////////////////////////////////
-
-	// 1 FIT = 10^9 device-hours
-	double sec_per_hour = 60 * 60;
-	double interval_factor = (interval / sec_per_hour) / 1000000000.0;
-
+	// For Event Driven sim, use expected values of MTBFs in seconds
 	for (int i = 0; i < DRAM_MAX; i++)
 	{
-		transientFIT[i] = (double)1.0 - exp(-transientFIT[i] * fit_factor * interval_factor);
-		permanentFIT[i] = (double)1.0 - exp(-permanentFIT[i] * fit_factor * interval_factor);
-		assert(transientFIT[i] >= 0);
-		assert(transientFIT[i] <= 1);
-		assert(permanentFIT[i] >= 0);
-		assert(permanentFIT[i] <= 1);
+		secs_per_fault[i].transient = 3600e9 / (FIT_rate[i].transient * fit_factor);
+		secs_per_fault[i].permanent = 3600e9 / (FIT_rate[i].permanent * fit_factor);
+	}
+
+	// For interval simulation, compute probability (using exponential model) of having a fault during any interval
+	double interval_factor = interval / 3600e9;
+	for (int i = 0; i < DRAM_MAX; i++)
+	{
+		error_probability[i].transient = 1.0 - exp(-FIT_rate[i].transient * fit_factor * interval_factor);
+		error_probability[i].permanent = 1.0 - exp(-FIT_rate[i].permanent * fit_factor * interval_factor);
+		assert(0 <= error_probability[i].transient && error_probability[i].transient <= 1);
+		assert(0 <= error_probability[i].permanent && error_probability[i].permanent <= 1);
 	}
 }
 
 void DRAMDomain::generateRanges(fault_class_t faultClass, bool transient)
 {
+	m_faultRanges.push_back(genRandomRange(faultClass, transient));
+}
+
+FaultRange *DRAMDomain::genRandomRange(fault_class_t faultClass, bool transient)
+{
 	switch (faultClass)
 	{
 		case DRAM_1BIT:
-			m_faultRanges.push_back(genRandomRange(1, 1, 1, 1, 1, transient, -1, false));
+			return genRandomRange(1, 1, 1, 1, 1, transient, -1, false);
 			break;
 
 		case DRAM_1WORD:
-			m_faultRanges.push_back(genRandomRange(1, 1, 1, 1, 0, transient, -1, false));
+			return genRandomRange(1, 1, 1, 1, 0, transient, -1, false);
 			break;
 
 		case DRAM_1COL:
-			m_faultRanges.push_back(genRandomRange(1, 1, 0, 1, 0, transient, -1, false));
+			return genRandomRange(1, 1, 0, 1, 0, transient, -1, false);
 			break;
 
 		case DRAM_1ROW:
-			m_faultRanges.push_back(genRandomRange(1, 1, 1, 0, 0, transient, -1, false));
+			return genRandomRange(1, 1, 1, 0, 0, transient, -1, false);
 			break;
 
 		case DRAM_1BANK:
-			m_faultRanges.push_back(genRandomRange(1, 1, 0, 0, 0, transient, -1, false));
+			return genRandomRange(1, 1, 0, 0, 0, transient, -1, false);
 			break;
 
 		case DRAM_NBANK:
-			m_faultRanges.push_back(genRandomRange(1, 0, 0, 0, 0, transient, -1, false));
+			return genRandomRange(1, 0, 0, 0, 0, transient, -1, false);
 			break;
 
 		case DRAM_NRANK:
-			m_faultRanges.push_back(genRandomRange(0, 0, 0, 0, 0, transient, -1, false));
+			return genRandomRange(0, 0, 0, 0, 0, transient, -1, false);
 			break;
 
 		default:
@@ -340,14 +349,14 @@ void DRAMDomain::generateRanges(fault_class_t faultClass, bool transient)
 }
 
 FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col, bool bit, bool transient,
-    int64_t rowbit_num, bool isTSV_t)
+    int64_t rowbit_num, bool isTSV)
 {
 	FaultRange *fr = new FaultRange(this);
 	fr->fAddr = 0;
 	fr->fWildMask = 0;
 	fr->Chip = 0;
 	fr->transient = transient;
-	fr->TSV = isTSV_t;
+	fr->TSV = isTSV;
 	fr->max_faults = 1; // maximum number of bits covered by FaultRange
 
 	// parameter 1 = fixed, 0 = wild

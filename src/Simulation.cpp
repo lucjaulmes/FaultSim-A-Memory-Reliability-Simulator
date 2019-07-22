@@ -87,15 +87,12 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 	//Reset Stats before starting any simulation
 	resetStats();
 
-	//Additional feature to dump logs to a outfile in the ./Results directory
-	std::ofstream opfile;
-
 	uint64_t bin_length = m_output_bucket;
 
-	//Max time of simulation in seconds
+	// Max time of simulation in seconds
 	stat_sim_seconds = max_time;
 
-	//Number of bins that the output file will have
+	// Number of bins that the output file will have
 	fail_time_bins = new uint64_t[max_time / bin_length];
 	fail_uncorrectable = new uint64_t[max_time / bin_length];
 	fail_undetectable = new uint64_t[max_time / bin_length];
@@ -150,42 +147,52 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 		std::cout << "# ===================================================================\n";
 	}
 
-	opfile.open(output_file);
+	std::ofstream opfile(output_file);
 	if (!opfile.is_open())
-		std::cout << "ERROR: output file " << output_file << ": opening failed\n" << std::endl;
-	opfile << "WEEKS,FAULT,FAULT-CUMU,P(FAULT),P(FAULT-CUMU),UNCORRECTABLE,UNCORRECTABLE-CUMU,P(UNCORRECTABLE),P(UNCORRECTABLE-CUMU),UNDETERCTABLE,UNDETECTABLE-CUMU,P(UNDETECTABLE),P(UNDETECTABLE-CUMU)"
-	    << std::endl;
-
-	double p_fail = 0;
-	double p_fail_cumulative = 0;
-	int64_t fail_cumulative = 0;
-	double p_uncorrected = 0;
-	double p_uncorrected_cumulative = 0;
-	int64_t uncorrectable_cumulative = 0;
-	double p_undetected = 0;
-	double p_undetected_cumulative = 0;
-	int64_t undetectable_cumulative = 0;
-
-	for (uint64_t jj = 0; jj < max_time / bin_length; jj++)
 	{
-		p_fail = ((double)fail_time_bins[jj]) / n_sims;
-		p_uncorrected = ((double)fail_uncorrectable[jj]) / n_sims;
-		p_undetected = ((double)fail_undetectable[jj]) / n_sims;
-		p_fail_cumulative += p_fail;
-		fail_cumulative += fail_time_bins[jj];
-		p_uncorrected_cumulative += p_uncorrected;
-		uncorrectable_cumulative += fail_uncorrectable[jj];
-		p_undetected_cumulative += p_undetected;
-		undetectable_cumulative += fail_undetectable[jj];
-
-		opfile << jj * 12 << "," << fail_time_bins[jj] << "," << fail_cumulative << "," << std::fixed << std::setprecision(
-		        6) << p_fail << "," << std::fixed << std::setprecision(6) << p_fail_cumulative << "," << fail_uncorrectable[jj] << ","
-		    << uncorrectable_cumulative << "," << std::fixed << std::setprecision(6) << p_uncorrected << "," <<
-		    p_uncorrected_cumulative << "," << fail_undetectable[jj] << "," << undetectable_cumulative << "," << std::fixed <<
-		    std::setprecision(6) << p_undetected << "," << p_undetected_cumulative << std::endl;
+		std::cout << "ERROR: output file " << output_file << ": opening failed\n" << std::endl;
+		return;
 	}
 
-	opfile.close();
+	opfile << "WEEKS,FAULT,FAULT-CUMU,P(FAULT),P(FAULT-CUMU)"
+			<< ",UNCORRECTABLE,UNCORRECTABLE-CUMU,P(UNCORRECTABLE),P(UNCORRECTABLE-CUMU)"
+			<< ",UNDETECTABLE,UNDETECTABLE-CUMU,P(UNDETECTABLE),P(UNDETECTABLE-CUMU)"
+	    << std::endl;
+
+	int64_t fail_cumulative = 0;
+	int64_t uncorrectable_cumulative = 0;
+	int64_t undetectable_cumulative = 0;
+
+	const double per_sim = 1. / n_sims;
+	for (uint64_t jj = 0; jj < max_time / bin_length; jj++)
+	{
+		fail_cumulative += fail_time_bins[jj];
+		uncorrectable_cumulative += fail_uncorrectable[jj];
+		undetectable_cumulative += fail_undetectable[jj];
+
+		double p_fail = fail_time_bins[jj] * per_sim;
+		double p_uncorrectable = fail_uncorrectable[jj] * per_sim;
+		double p_undetectable = fail_undetectable[jj] * per_sim;
+
+		double p_fail_cumulative = fail_cumulative * per_sim;
+		double p_uncorrectable_cumulative = uncorrectable_cumulative * per_sim;
+		double p_undetectable_cumulative = undetectable_cumulative * per_sim;
+
+		opfile << jj * 12 // why 12 ?
+			<< ',' << fail_time_bins[jj]
+			<< ',' << fail_cumulative
+			<< ',' << std::fixed << std::setprecision(6) << p_fail
+			<< ',' << std::fixed << std::setprecision(6) << p_fail_cumulative
+			<< ',' << fail_uncorrectable[jj]
+			<< ',' << uncorrectable_cumulative
+			<< ',' << std::fixed << std::setprecision(6) << p_uncorrectable
+			<< ',' << p_uncorrectable_cumulative
+			<< ',' << fail_undetectable[jj]
+			<< ',' << undetectable_cumulative
+			<< ',' << std::fixed << std::setprecision(6) << p_undetectable
+			<< ',' << p_undetectable_cumulative
+			<< '\n';
+	}
 }
 
 
@@ -195,7 +202,6 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 
 	// reset the domain states e.g. recorded errors for the simulated timeframe
 	reset();
-	uint64_t bin;
 
 	// calculate number of iterations
 	uint64_t max_iterations = max_s / m_interval;
@@ -203,6 +209,7 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 	// compute the ratio at which scrubbing needs to be performed
 	uint64_t scrub_ratio = m_scrub_interval / m_interval;
 	uint64_t errors = 0;
+
 	/*************************************************
 	 * THIS IS THE LOOP FOR A SINGLE RUN FOR N YEARS *
 	 *************************************************/
@@ -211,13 +218,14 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 		// loop through all fault domains and update
 		for (FaultDomain *fd: m_domains)
 		{
-
-			//Insert Faults Hierarchially: GroupDomain -> Lower Domains -> .. ; since (time between updates) << (Total Running Time), faults can be assumed to be inserted instantaneously
+			// Insert Faults Hierarchially: GroupDomain -> Lower Domains -> ..
+			// Since (time between updates) << (Total Running Time), faults can be assumed to be inserted instantaneously
 			int newfault = fd->update(test_mode);
 			uint64_t n_undetected = 0;
 			uint64_t n_uncorrected = 0;
 
-			//Run the Repair function: This will check the correctability/ detectability of the fault(s); Repairing is also done instantaneously
+			// Run the Repair function: This will check the correctability/ detectability of the fault(s)
+			// Repairing is also done instantaneously
 			if (newfault)
 			{
 				if (verbose == 2)
@@ -237,41 +245,24 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 				}
 			}
 
-			if (!cont_running)
+			if (n_undetected || n_uncorrected)
 			{
-				if (n_undetected || n_uncorrected)
+				// Update the appropriate Bin to log into the output file
+				uint64_t bin = (iter * m_interval) / bin_length;
+				fail_time_bins[bin]++;
+
+				if (n_uncorrected > 0)
+					fail_uncorrectable[bin]++;
+				if (n_undetected > 0)
+					fail_undetectable[bin]++;
+
+				errors++;
+
+				if (!cont_running)
 				{
 					// if any iteration fails to repair, halt the simulation and report failure
 					finalize();
-
-					//Update the appropriate Bin to log into the output file
-					bin = (iter * m_interval) / bin_length;
-					fail_time_bins[bin]++;
-
-					if (n_uncorrected > 0)
-						fail_uncorrectable[bin]++;
-					if (n_undetected > 0)
-						fail_undetectable[bin]++;
-
-
-
 					return 1;
-				}
-			}
-
-			else
-			{
-				if (n_undetected || n_uncorrected)
-				{
-					errors++;
-
-					bin = (iter * m_interval) / bin_length;
-					fail_time_bins[bin]++;
-
-					if (n_uncorrected > 0)
-						fail_uncorrectable[bin]++;
-					if (n_undetected > 0)
-						fail_undetectable[bin]++;
 				}
 			}
 
@@ -283,7 +274,8 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 			{
 				fd->scrub();
 
-				//User Defined Special operation to be performed while Scrubbing
+				// User Defined Special operation to be performed while Scrubbing
+				// (??) -> causes failure if returns 1
 				if (fd->fill_repl())
 				{
 					finalize();
@@ -319,8 +311,7 @@ void Simulation::getFaultCounts(uint64_t *pTrans, uint64_t *pPerm)
 void Simulation::printStats()
 {
 	std::cout << "\n";
-	// loop through all domains and report itemized, failures
-	// while aggregating them to calculate overall stats
+	// loop through all domains and report itemized failures, while aggregating them to calculate overall stats
 
 	for (FaultDomain *fd: m_domains)
 		fd->printStats();
