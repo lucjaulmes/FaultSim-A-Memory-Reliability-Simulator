@@ -32,7 +32,8 @@ class FaultRange;
 class DRAMDomain : public FaultDomain
 {
 public:
-	DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows, uint32_t n_cols);
+	DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows, uint32_t n_cols,
+				double weibull_shape_parameter = 1.);
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
 	void init(uint64_t interval, uint64_t sim_seconds, double fit_factor);
@@ -81,6 +82,8 @@ protected:
 
 	uint64_t n_faults_transient_tsv, n_faults_permanent_tsv;
 
+
+	double inv_weibull_shape;
 
 	enum field { BITS = 0, COLS, ROWS, BANKS, RANKS, FIELD_MAX };
 	uint32_t m_bitwidth, m_ranks, m_banks, m_rows, m_cols;

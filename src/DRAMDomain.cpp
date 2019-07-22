@@ -31,9 +31,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern struct Settings settings;
 
 DRAMDomain::DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows,
-    uint32_t n_cols)
+    uint32_t n_cols, double weibull_shape_parameter)
 	: FaultDomain(name)
 	, gen(random64_engine_t(), random_uniform_t(0, 1))
+    , inv_weibull_shape(1. / weibull_shape_parameter)
 	, m_bitwidth(n_bitwidth)
 	, m_ranks(n_ranks)
 	, m_banks(n_banks)
@@ -307,11 +308,12 @@ void DRAMDomain::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
 
 double DRAMDomain::next_fault_event(fault_class_t faultClass, bool transient)
 {
-	double exponential_random = -log(gen());
+	// with default parameter weibull shape (= 1.) this is an exponential distribution
+	double weibull_random = pow(-log(gen()), inv_weibull_shape);
 	if (transient)
-		return exponential_random * secs_per_fault[faultClass].transient;
+		return weibull_random * secs_per_fault[faultClass].transient;
 	else
-		return exponential_random * secs_per_fault[faultClass].permanent;
+		return weibull_random * secs_per_fault[faultClass].permanent;
 }
 
 inline bool DRAMDomain::fault_in_interval(fault_class_t faultClass, bool transient)
