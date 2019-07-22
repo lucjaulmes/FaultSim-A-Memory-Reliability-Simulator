@@ -29,15 +29,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FaultDomain.hh"
 class FaultRange;
 
-// 32-bit random integers for determining fault locations
-typedef boost::mt19937                      ENG32;
-
 class DRAMDomain : public FaultDomain
 {
 public:
 	DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows, uint32_t n_cols);
 
-	void setFIT(int faultClass, bool isTransient, double FIT);
+	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
 	void init(uint64_t interval, uint64_t sim_seconds, double fit_factor);
 	int update(uint test_mode_t);   // perform one iteration
 	void repair(uint64_t &n_undetectable, uint64_t &n_uncorrectable);
@@ -64,7 +61,7 @@ public:
 	//uint32_t getChipNumber();
 
 
-	void generateRanges(int faultClass, bool transient);   // based on a fault, create all faulty address ranges
+	void generateRanges(fault_class_t faultClass, bool transient);   // based on a fault, create all faulty address ranges
 	FaultRange *genRandomRange(bool rank, bool bank, bool row, bool col, bool bit, bool transient, int64_t rowbit_num,
 	    bool isTSV_t);
 	const char *faultClassString(int i);
@@ -77,10 +74,8 @@ public:
 
 	std::list<FaultRange *> m_faultRanges;
 
-	ENG  eng;
-	DIST dist;
-	GEN  gen;
-	ENG32 eng32;
+	random_generator_t gen;
+	random32_engine_t eng32;
 
 	uint64_t curr_interval;
 

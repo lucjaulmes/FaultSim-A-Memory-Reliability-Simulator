@@ -31,8 +31,8 @@ extern struct Settings settings;
 GroupDomain_cube::GroupDomain_cube(const char *name, uint cube_model_t, uint64_t chips_t, uint64_t banks_t,
     uint64_t burst_size_t, uint64_t cube_addr_dec_depth_t, uint64_t cube_ecc_tsv_t, uint64_t cube_redun_tsv_t,
     bool enable_tsv_t) : GroupDomain(name)
-	, dist(0, 1)
-	, gen(eng, dist)
+	, eng()
+	, gen(eng, random_uniform_t(0, 1))
 {
 	//Register Cube Model
 	cube_model_enable = cube_model_t;
@@ -161,7 +161,7 @@ int GroupDomain_cube::update(uint test_mode_t)
 	return newfault;
 }
 
-void GroupDomain_cube::setFIT(int faultClass, bool isTransient, double FIT)
+void GroupDomain_cube::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
 {
 	assert(0);
 }

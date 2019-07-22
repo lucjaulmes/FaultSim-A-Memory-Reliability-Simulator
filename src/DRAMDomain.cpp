@@ -33,8 +33,7 @@ extern struct Settings settings;
 DRAMDomain::DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows,
     uint32_t n_cols)
 	: FaultDomain(name)
-	, dist(0, 1)
-	, gen(eng, dist)
+	, gen(random64_engine_t(), random_uniform_t(0, 1))
 	, m_bitwidth(n_bitwidth)
 	, m_ranks(n_ranks)
 	, m_banks(n_banks)
@@ -136,6 +135,7 @@ int DRAMDomain::update(uint test_mode_t)
 	// Insert DRAM die faults
 	for (uint i = 0; i < DRAM_MAX; i++)
 	{
+		fault_class_t f = fault_class_t(i);
 		if (test_mode_t == 0)
 		{
 			double random = gen();
@@ -143,7 +143,7 @@ int DRAMDomain::update(uint test_mode_t)
 			{
 				n_faults_transient++;
 				n_faults_transient_class[i]++;
-				generateRanges(i, true);
+				generateRanges(f, true);
 				newfault1 = 1;
 			}
 
@@ -153,7 +153,7 @@ int DRAMDomain::update(uint test_mode_t)
 			{
 				n_faults_permanent++;
 				n_faults_permanent_class[i]++;
-				generateRanges(i, false);
+				generateRanges(f, false);
 				newfault1 = 1;
 			}
 
@@ -164,7 +164,7 @@ int DRAMDomain::update(uint test_mode_t)
 			{
 				n_faults_transient++;
 				n_faults_transient_class[i]++;
-				generateRanges(i, true);
+				generateRanges(f, true);
 				newfault1 = 1;
 			}
 
@@ -172,7 +172,7 @@ int DRAMDomain::update(uint test_mode_t)
 			{
 				n_faults_permanent++;
 				n_faults_permanent_class[i]++;
-				generateRanges(i, false);
+				generateRanges(f, false);
 				newfault1 = 1;
 			}
 		}
@@ -271,7 +271,7 @@ void DRAMDomain::scrub()
 	}
 }
 
-void DRAMDomain::setFIT(int faultClass, bool isTransient, double FIT)
+void DRAMDomain::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
 {
 	if (isTransient)
 		transientFIT[faultClass] = FIT;
@@ -307,7 +307,7 @@ void DRAMDomain::init(uint64_t interval, uint64_t sim_seconds, double fit_factor
 	}
 }
 
-void DRAMDomain::generateRanges(int faultClass, bool transient)
+void DRAMDomain::generateRanges(fault_class_t faultClass, bool transient)
 {
 	switch (faultClass)
 	{

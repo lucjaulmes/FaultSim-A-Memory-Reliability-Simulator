@@ -27,8 +27,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t banks_t,
     uint64_t burst_size_t) : GroupDomain(name)
-	, dist(0, 1)
-	, gen(eng, dist)
+	, eng()
+	, gen(eng, random_uniform_t(0, 1))
 {
 	chips = chips_t; //Total Chips in a DIMM
 	banks = banks_t; //Total Banks per Chip
@@ -45,7 +45,7 @@ int GroupDomain_dimm::update(uint test_mode_t)
 	return FaultDomain::update(test_mode_t);
 }
 
-void GroupDomain_dimm::setFIT(int faultClass, bool isTransient, double FIT)
+void GroupDomain_dimm::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
 {
 }
 
