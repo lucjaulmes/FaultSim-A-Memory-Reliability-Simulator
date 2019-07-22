@@ -50,9 +50,9 @@ std::string FaultDomain::getName()
 	return m_name;
 }
 
-std::list<FaultDomain *> *FaultDomain::getChildren()
+std::list<FaultDomain *> &FaultDomain::getChildren()
 {
-	return &m_children;
+	return m_children;
 }
 
 void FaultDomain::setDebug(bool dbg)

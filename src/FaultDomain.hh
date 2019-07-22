@@ -63,7 +63,7 @@ public:
 	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV);
 	void update_cube();
 
-	std::list<FaultDomain *> *getChildren();
+	std::list<FaultDomain *> &getChildren();
 	virtual void resetStats();
 	virtual void printStats(); // output end-of-run stats
 

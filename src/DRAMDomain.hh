@@ -41,7 +41,7 @@ public:
 	void scrub();
 	virtual void reset();
 
-	std::list<FaultRange *> *getRanges();
+	std::list<FaultRange *> &getRanges();
 
 	void dumpState();
 	void printStats();
@@ -64,6 +64,7 @@ public:
 	void generateRanges(fault_class_t faultClass, bool transient);   // based on a fault, create all faulty address ranges
 	FaultRange *genRandomRange(bool rank, bool bank, bool row, bool col, bool bit, bool transient, int64_t rowbit_num,
 	    bool isTSV_t);
+
 	const char *faultClassString(int i);
 
 	double transientFIT[DRAM_MAX];

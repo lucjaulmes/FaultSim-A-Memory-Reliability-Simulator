@@ -41,18 +41,18 @@ std::pair<uint64_t, uint64_t> BCHRepair_cube::repair(FaultDomain *fd)
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 
 	// Repair up to N bit faults in a single block
-	std::list<FaultDomain *> *pChips = fd->getChildren();
+	std::list<FaultDomain *> &pChips = fd->getChildren();
 	//assert( pChips->size() == (m_n_repair * 18) );
 
-	for (FaultDomain *fd: *pChips)
-		for (FaultRange *fr: *dynamic_cast<DRAMDomain *>(fd)->getRanges())
+	for (FaultDomain *fd: pChips)
+		for (FaultRange *fr: dynamic_cast<DRAMDomain *>(fd)->getRanges())
 			fr->touched = 0;
 
 	// Take each chip in turn.  For every fault range in a chip, see which neighbors intersect it's ECC block(s).
 	// Count the failed bits in each ECC block.
-	for (FaultDomain *fd: *pChips)
+	for (FaultDomain *fd: pChips)
 	{
-		for (FaultRange *frOrg: *dynamic_cast<DRAMDomain *>(fd)->getRanges())
+		for (FaultRange *frOrg: dynamic_cast<DRAMDomain *>(fd)->getRanges())
 		{
 			FaultRange frTemp = *frOrg;
 
@@ -73,7 +73,7 @@ std::pair<uint64_t, uint64_t> BCHRepair_cube::repair(FaultDomain *fd)
 
 				for (unsigned ii = 0; ii < loopcount_locations; ii++)
 				{
-					for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd)->getRanges())
+					for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(fd)->getRanges())
 					{
 						if (settings.debug)
 							std::cout << m_name << ": inner " << fr1->toString() << " bit " << ii << "\n";

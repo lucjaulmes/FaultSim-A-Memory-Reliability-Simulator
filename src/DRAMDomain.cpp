@@ -82,9 +82,9 @@ DRAMDomain::DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32
 	}
 }
 
-std::list<FaultRange *> *DRAMDomain::getRanges()
+std::list<FaultRange *> &DRAMDomain::getRanges()
 {
-	return &m_faultRanges;
+	return m_faultRanges;
 }
 
 const char *DRAMDomain::faultClassString(int i)

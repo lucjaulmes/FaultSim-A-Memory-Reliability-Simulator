@@ -64,12 +64,12 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 
 	// New for Event-Driven: set up the time-ordered event list
 	// Get access to a DRAM domain
-	std::list<FaultDomain *> *pChips = m_domains.front()->getChildren();
+	std::list<FaultDomain *> &pChips = m_domains.front()->getChildren();
 
 	int err_inserted = 0;
 
 	int devices = 0;
-	for (FaultDomain *fd: *pChips)
+	for (FaultDomain *fd: pChips)
 	{
 		DRAMDomain *pD = dynamic_cast<DRAMDomain *>(fd);
 		double period = 0;

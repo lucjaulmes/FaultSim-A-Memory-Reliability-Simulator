@@ -37,19 +37,19 @@ std::pair<uint64_t, uint64_t> BCHRepair::repair(FaultDomain *fd)
 
 	// Repair up to N bit faults in a single row.
 	// Similar to ChipKill except that only 1 bit can be bad across all devices, instead of 1 symbol being bad.
-	std::list<FaultDomain *> *pChips = fd->getChildren();
+	std::list<FaultDomain *> &pChips = fd->getChildren();
 
-	for (FaultDomain *fd: *pChips)
-		for (FaultRange *fr: *dynamic_cast<DRAMDomain*>(fd)->getRanges())
+	for (FaultDomain *fd: pChips)
+		for (FaultRange *fr: dynamic_cast<DRAMDomain*>(fd)->getRanges())
 			fr->touched = 0;
 
 	// Take each chip in turn.  For every fault range, compare with all chips including itself, any intersection of
 	// fault range is treated as a fault. if count exceeds correction ability, fail.
-	for (FaultDomain *fd0: *pChips)
+	for (FaultDomain *fd0: pChips)
 	{
 		// For each fault in first chip, query the second chip to see if it has
 		// an intersecting fault range, touched variable tells us about the location being already addressed or not
-		for (FaultRange *frOrg: *dynamic_cast<DRAMDomain *>(fd0)->getRanges())
+		for (FaultRange *frOrg: dynamic_cast<DRAMDomain *>(fd0)->getRanges())
 		{
 			FaultRange frTemp = *frOrg; // This is a fault location of a chip
 
@@ -84,8 +84,8 @@ std::pair<uint64_t, uint64_t> BCHRepair::repair(FaultDomain *fd)
 				for (unsigned ii = 0; ii < loopcount_locations; ii++)
 				{
 					// for each other chip including the current one, count number of intersecting faults
-					for (FaultDomain *fd1: *pChips)
-						for (FaultRange *fr1: *dynamic_cast<DRAMDomain *>(fd1)->getRanges())
+					for (FaultDomain *fd1: pChips)
+						for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 							if (frTemp.intersects(fr1) && (fr1->touched < fr1->max_faults))
 							{
 								// immediately move on to the next chip, we don't care about other ranges

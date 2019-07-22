@@ -34,21 +34,21 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	// Repair this module, assuming 8-bit symbols.
 
-	std::list<FaultDomain *> *pChips = fd->getChildren();
-	// Make sure number of children is appropriate for level of ChipKill, i.e. 18 chips per chipkill.
-	assert(pChips->size() == (m_n_correct * 18));
+	std::list<FaultDomain *> &pChips = fd->getChildren();
+	// Make sure number of children is appropriate for level of ChipKill, i.e. 18 chips per chipkill symbol correction.
+	assert(pChips.size() == (m_n_correct * 18));
 
 	// Clear out the touched values for all chips
-	for (FaultDomain *chip: *pChips)
-		for (FaultRange *fr: *dynamic_cast<DRAMDomain*>(chip)->getRanges())
+	for (FaultDomain *chip: pChips)
+		for (FaultRange *fr: dynamic_cast<DRAMDomain*>(chip)->getRanges())
 			fr->touched = 0;
 
 	// Take each chip in turn.  For every fault range, count the number of intersecting faults (rounded to an 8-bit range).
 	// If count exceeds correction ability, fail.
-	for (FaultDomain *chip0: *pChips)
+	for (FaultDomain *chip0: pChips)
 	{
 		// For each fault in a chip, query the following chips to see if they have intersecting fault ranges.
-		for (FaultRange *frOrg: *dynamic_cast<DRAMDomain*>(chip0)->getRanges())
+		for (FaultRange *frOrg: dynamic_cast<DRAMDomain*>(chip0)->getRanges())
 		{
 			// tweak the query range to cover 8-bit block on a copy, otherwise fault is modified as a side-effect
 			FaultRange frTemp = *frOrg;
@@ -57,8 +57,8 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 			if (frTemp.touched < frTemp.max_faults)
 			{
 				// for each other chip, count number of intersecting faults
-				for (FaultDomain *chip1: *pChips)
-					for (FaultRange *fr1: *dynamic_cast<DRAMDomain*>(chip1)->getRanges())
+				for (FaultDomain *chip1: pChips)
+					for (FaultRange *fr1: dynamic_cast<DRAMDomain*>(chip1)->getRanges())
 						if (frTemp.intersects(fr1))
 						// && (fr1->touched < fr1->max_faults)
 						{
