@@ -79,13 +79,15 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 
 
 	uint64_t errors = 0;
-	uint64_t last_scrub_interval = 0;
 
 	// Step through the event list, injecting a fault into corresponding chip at each event, and invoking ECC
-	for (auto &time_fault_pair: q1)
+	for (auto time_fault_pair = q1.begin(); time_fault_pair != q1.end(); )
 	{
-		double timestamp = time_fault_pair.first;
-		FaultRange *fr = time_fault_pair.second;
+		double timestamp = time_fault_pair->first;
+		FaultRange *fr = time_fault_pair->second;
+
+		// Peek at the future
+		double next_timestamp = ++time_fault_pair != q1.end() ? time_fault_pair->first : (timestamp + m_interval);
 
 		DRAMDomain *pDRAM = fr->m_pDRAM;
 		pDRAM->getRanges().push_back(fr);
@@ -95,6 +97,12 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 			std::cout << "FAULTS INSERTED: BEFORE REPAIR\n";
 			pDRAM->dumpState();
 		}
+
+
+		// Somewhat artificial notion of “repair interval” to simulate faults that appear simultaneously
+		if (floor(timestamp / m_interval) == floor(next_timestamp / m_interval))
+			continue;
+
 
 		// Run the repair function: This will check the correctability / detectability of the fault(s)
 		uint64_t n_undetected = 0;
@@ -129,19 +137,17 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 			}
 		}
 
-		// Scrubbing is performed after a fault has occured and if a full scrub interval has passed since the last time
-		uint64_t scrub_interval = timestamp / m_scrub_interval;
-		if (last_scrub_interval < scrub_interval)
+		// Scrubbing is performed after a fault has occured and if the next fault is in a different scrub interval
+		if (floor(timestamp / m_scrub_interval) == floor(next_timestamp / m_scrub_interval))
+			continue;
+
+		for (FaultDomain *fd: m_domains)
 		{
-			last_scrub_interval = scrub_interval;
-			for (FaultDomain *fd: m_domains)
+			fd->scrub();
+			if (fd->fill_repl())
 			{
-				fd->scrub();
-				if (fd->fill_repl())
-				{
-					finalize();
-					return 1;
-				}
+				finalize();
+				return 1;
 			}
 		}
 	}

@@ -111,8 +111,7 @@ int main(int argc, char **argv)
 	std::unique_ptr<Simulation> sim;
 
 	// Simulator settings are as follows:
-	// a. The setting.interval_s (in seconds) indicates the granularity of inserting faults
-	//    (not used in Event Based Simulator).
+	// a. The setting.interval_s (in seconds) indicates the granularity of inserting/repairing faults.
 	// b. The setting.scrub_s (in seconds) indicates the granularity of scrubbing transient faults.
 	// c. The setting.fit_factor indicates the multiplicative factor for fit_rates.
 	// d. The setting.debug will enable debug messages
