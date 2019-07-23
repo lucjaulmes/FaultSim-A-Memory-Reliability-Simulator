@@ -39,17 +39,6 @@ FaultRange::FaultRange(DRAMDomain *pDRAM) :
 	TSV = false;
 }
 
-void FaultRange::intersection(const FaultRange &fr)
-{
-	// NB: only works for errors that intersect, meaning that have equal address bits outside of their respective masks
-	fAddr = (fAddr & ~fWildMask) | (fr.fAddr & ~fr.fWildMask);
-	fWildMask &= fr.fWildMask;
-
-	assert( (fAddr & fWildMask) == 0 );
-
-	transient_remove = transient_remove || fr.transient_remove;
-}
-
 bool FaultRange::intersects(FaultRange *fr) const
 {
 	uint64_t fAddr0 = fAddr;
@@ -88,3 +77,4 @@ std::string FaultRange::toString() const
 void FaultRange::clear()
 {
 }
+

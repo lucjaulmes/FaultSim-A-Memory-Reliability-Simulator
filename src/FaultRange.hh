@@ -34,14 +34,14 @@ class FaultRange
 {
 public:
 	FaultRange(DRAMDomain *pDRAM);
+	virtual ~FaultRange() {}
+
 	// does this FR intersect with the supplied FR?
 	bool intersects(FaultRange *fr) const;
 	// How many bits in any sym_bits-wide symbol could be faulty?
 	//uint64_t maxFaultyBits( uint64_t sym_bits );
 	bool isTSV();
-	std::string toString() const;   // for debugging
-
-	void intersection(const FaultRange &fr);
+	virtual std::string toString() const;   // for debugging
 
 	void clear();
 

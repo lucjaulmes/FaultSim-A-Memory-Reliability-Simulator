@@ -20,9 +20,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <string>
+#include <iostream>
+#include <iomanip>
+#include <list>
+#include <stack>
 
 #include "ChipKillRepair.hh"
 #include "DRAMDomain.hh"
+#include "FaultRange.hh"
+
 
 ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size)
 	: RepairScheme(name), m_n_correct(n_sym_correct), m_n_detect(n_sym_detect), m_symbol_mask((1ULL << log_symbol_size) - 1)
@@ -31,10 +37,34 @@ ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_de
 
 std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 {
-	uint64_t n_undetectable = 0, n_uncorrectable = 0;
-	// Repair this module, assuming 8-bit symbols.
+	std::list<FaultIntersection> sdc, due, failures = compute_failure_intersections(fd);
 
+	for (auto fail: failures)
+	{
+		if (fail.chip_count() > m_n_detect)
+			sdc.push_back(fail);
+		else
+			due.push_back(fail);
+	}
+
+	remove_duplicate_failures(sdc);
+	remove_duplicate_failures(due);
+
+	for (auto fail: due)
+		for (FaultRange *fr: fail.intersecting)
+			fr->transient_remove = false;
+
+	for (auto fail: sdc)
+		for (FaultRange *fr: fail.intersecting)
+			fr->transient_remove = false;
+
+	return std::make_pair(sdc.size(), due.size());
+}
+
+std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(FaultDomain *fd)
+{
 	std::list<FaultDomain *> &pChips = fd->getChildren();
+	DRAMDomain *dram0 = dynamic_cast<DRAMDomain*>(pChips.front());
 	// Make sure number of children is appropriate for level of ChipKill, i.e. 18 chips per chipkill symbol correction.
 	assert(pChips.size() == (m_n_correct * 18));
 
@@ -43,54 +73,120 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 		for (FaultRange *fr: dynamic_cast<DRAMDomain*>(chip)->getRanges())
 			fr->touched = 0;
 
-	// Take each chip in turn.  For every fault range, count the number of intersecting faults (rounded to a symbol size).
-	// If count exceeds correction ability, fail.
-	for (FaultDomain *chip0: pChips)
-	{
-		// For each fault in a chip, query the following chips to see if they have intersecting fault ranges.
-		for (FaultRange *frOrg: dynamic_cast<DRAMDomain*>(chip0)->getRanges())
-		{
-			// tweak the query range to cover a full symbol. Do this on a copy, otherwise fault is modified as a side-effect
-			FaultRange frTemp = *frOrg;
-			frTemp.fWildMask |= m_symbol_mask;
-			uint32_t n_intersections = 0;
-			if (frTemp.touched < frTemp.max_faults)
-			{
-				// for each other chip, count number of intersecting faults
-				for (FaultDomain *chip1: pChips)
-				{
-					// only iterate on pairs of chips, here chip1 < chip0 always
-					if (chip1 == chip0) break;
+	// Found failures and a stack to building them through the fault range traversal
+	std::list<FaultIntersection> failures;
+	std::stack<FaultIntersection> error_intersection({FaultIntersection(dram0)});
 
-					for (FaultRange *fr1: dynamic_cast<DRAMDomain*>(chip1)->getRanges())
-						if (frTemp.intersects(fr1))
-						// && (fr1->touched < fr1->max_faults)
-						{
-							// count the intersection
-							n_intersections++;
-							break;
-						}
-				}
-			}
-			if (n_intersections <= m_n_correct)
+	// Perform a DFS of intersecting fault ranges
+	auto chip = pChips.cbegin();
+	auto faultrange = dram0->getRanges().cbegin();
+	std::stack<decltype(std::make_pair(chip, faultrange))> traversal({{chip, faultrange}});
+
+	while (!traversal.empty())
+	{
+		std::tie(chip, faultrange) = traversal.top();
+		traversal.pop();
+
+		// Traverse all (chip, faultrange) pairs. No need to continue if we reach more intersections than we can detect
+		// NB: if we reach more intersections than we can correct, a subset might still be undetectable.
+		while (chip != pChips.cend() && !(error_intersection.top().chip_count() > m_n_detect))
+		{
+			const auto end = dynamic_cast<DRAMDomain*>(*chip)->getRanges().cend();
+			for (; faultrange != end; ++faultrange)
 			{
-				if (frOrg->fWildMask > m_n_correct)
-					frOrg->transient_remove = false;
+				FaultIntersection frInt(*faultrange, m_symbol_mask);
+
+				assert( (frInt.fAddr & frInt.fWildMask) == 0 );
+
+				// check if the fault range *faultrange intersects the previous set of intersecting fault ranges
+				if (frInt.intersects(&error_intersection.top()))
+					frInt.intersection(error_intersection.top());
+				else
+					// no intersection, move on to the next fault range in this chip
+					continue;
+
+				// save the cumulated intersection for comparison with the next faults
+				error_intersection.push(frInt);
+
+				// we’ll come back here with the next fault range instead of this one
+				traversal.push(std::make_pair(chip, std::next(faultrange)));
+
+				// advance to next chip since only fautl ranges on different faults can intersect
+				break;
 			}
-			else if (n_intersections > m_n_detect)
-			{
-				n_undetectable += n_intersections - m_n_detect;
-				frOrg->transient_remove = false;
-			}
-			else if (n_intersections > m_n_correct)
-			{
-				n_uncorrectable += n_intersections - m_n_correct;
-				frOrg->transient_remove = false;
-			}
+
+			// advance chip and set new FaultRange *faultrange here and not at the loop beginning,
+			// to allow the pop() mechanism to work
+			if (++chip != pChips.cend())
+				faultrange = dynamic_cast<DRAMDomain*>(*chip)->getRanges().cbegin();
 		}
+
+		FaultIntersection &intersection = error_intersection.top();
+
+		// mark intersecting errors based on how many intersection symbols are affected
+		// NB: for double chipkill we might mark a triple error and a double error containing this triple error
+		if (intersection.chip_count() > m_n_correct)
+			failures.push_back(intersection);
+		{
+			failures.push_back(intersection);
+
+			for (FaultRange *fr: intersection.intersecting)
+				fr->transient_remove = false;
+		}
+
+		error_intersection.pop();
 	}
 
-	return std::make_pair(n_undetectable, n_uncorrectable);
+	return failures;
+}
+
+void ChipKillRepair::remove_duplicate_failures(std::list<FaultIntersection> &failures)
+{
+	if (failures.empty())
+		return;
+
+	failures.sort([] (FaultRange &a, FaultRange &b)
+		{
+			return std::make_pair(a.fAddr, a.fAddr | a.fWildMask) < std::make_pair(b.fAddr, b.fAddr | b.fWildMask);
+		});
+
+	for (auto it = failures.begin(), nx = std::next(it); nx != failures.end(); )
+	{
+		uint64_t it_start = it->fAddr, it_end = (it_start | it->fWildMask) + 1; // it = {}
+		uint64_t nx_start = nx->fAddr, nx_end = (nx_start | nx->fWildMask) + 1; // nx = ()
+
+		// from sorting
+		assert (it_start <= nx_start);
+
+		if (it_end <= nx_start)
+			// disjoint case it_start < it_end ≤ nx_start < nx_end { } ( )  , move on.
+			++nx, ++it;
+		else if (it_end >= nx_end)
+			// fully overlapping it_start ≤ nx_start ≤ nx_end ≤ it_end { ( ) }
+			nx = failures.erase(nx);
+		else if (it_start == nx_start)
+		{
+			// fully overlapping it_start = nx_start ≤ it_end < nx_end  [({]  } )
+			it = failures.erase(it);
+			nx = std::next(it);
+		}
+		else
+		{
+			// annoying overlap: it_start < nx_start < it_end < nx_end { ( } )
+			// Typically 2 columns in the same bank. If not, print a warning.
+			if (! (it->m_pDRAM->maskClass(it->fWildMask) == DRAM_1COL && nx->m_pDRAM->maskClass(nx->fWildMask) == DRAM_1COL
+						&& it->m_pDRAM->getRanks(it->fWildMask) == nx->m_pDRAM->getRanks(nx->fWildMask)
+						&& it->m_pDRAM->getBanks(it->fWildMask) == nx->m_pDRAM->getBanks(nx->fWildMask)
+				  ))
+				std::cout << "\nWARNING: unexpected partial overlap between ranges " << std::showbase << std::hex
+					<< it_start << " | " << it->fWildMask << " -> " << it_end - 1 << " and "
+					<< nx_start << " | " << nx->fWildMask << " -> " << nx_end - 1 << std::dec
+					<< "\n  " << *it << "\n  " << *nx << std::endl;
+
+			// Unsure masks can be combined, continue
+			++nx, ++it;
+		}
+	}
 }
 
 uint64_t ChipKillRepair::fill_repl(FaultDomain *fd)
@@ -106,4 +202,22 @@ void ChipKillRepair::printStats()
 void ChipKillRepair::resetStats()
 {
 	RepairScheme::resetStats();
+}
+
+void FaultIntersection::intersection(const FaultIntersection &fr)
+{
+	// NB: only works for errors that intersect, meaning that have equal address bits outside of their respective masks
+	fAddr = (fAddr & ~fWildMask) | (fr.fAddr & ~fr.fWildMask);
+	fWildMask &= fr.fWildMask;
+
+	transient_remove = transient = transient || fr.transient;
+	std::copy(fr.intersecting.begin(), fr.intersecting.end(), std::back_inserter(intersecting));
+}
+
+std::string FaultIntersection::toString()
+{
+	std::ostringstream build;
+	build << FaultRange::toString();
+	build << " intersection of " << intersecting.size() << " faults";
+	return build.str();
 }

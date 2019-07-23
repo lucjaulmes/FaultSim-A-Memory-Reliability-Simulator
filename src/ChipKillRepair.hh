@@ -24,7 +24,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
+#include "dram_common.hh"
 #include "RepairScheme.hh"
+#include "FaultRange.hh"
+
+class FaultIntersection;
 
 class ChipKillRepair : public RepairScheme
 {
@@ -38,7 +42,45 @@ public:
 
 private:
 	const uint64_t m_n_correct, m_n_detect, m_symbol_mask;
+
+	void remove_duplicate_failures(std::list<FaultIntersection> &failures);
+	std::list<FaultIntersection> compute_failure_intersections(FaultDomain *fd);
 };
 
+
+class FaultIntersection: public FaultRange
+{
+public:
+	std::vector<FaultRange*> intersecting;
+
+	// The intersection of 0 faults
+	FaultIntersection(DRAMDomain *pDRAM) :
+		FaultRange(pDRAM), intersecting()
+	{
+		fAddr = 0ULL;
+		fWildMask = ~0ULL;
+		transient = false;
+		transient_remove = false;
+	}
+
+	// Use FaultRange copy constructor to create the intersection of 1 fault
+	FaultIntersection(FaultRange *fault, uint64_t min_mask):
+		FaultRange(*fault), intersecting()
+	{
+		fAddr &= ~min_mask;
+		fWildMask |= min_mask;
+		intersecting.push_back(fault);
+	}
+
+	// Each FaultRange represents chip with intersecting errors
+	inline size_t chip_count()
+	{
+		return intersecting.size();
+	}
+
+	void intersection(const FaultIntersection &fr);
+
+	std::string toString();
+};
 
 #endif /* CHIPKILLREPAIR_HH_ */
