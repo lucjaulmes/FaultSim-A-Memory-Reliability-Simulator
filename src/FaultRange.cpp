@@ -36,10 +36,6 @@ FaultRange::FaultRange(DRAMDomain *pDRAM) :
 	recent_touched = false;
 	max_faults = 0;
 	TSV = false;
-
-	// Event-driven FaultSim
-	timestamp = 0;
-	ignore = 0;
 }
 
 bool FaultRange::intersects(FaultRange *fr)

@@ -56,10 +56,6 @@ public:
 	// Chip location of this fault range.
 	uint32_t Chip;
 
-	// For Event-driven simulation
-	double timestamp;   // time in seconds at which the FR was inserted
-	int ignore;     // whether or not a correctable fault was scrubbed
-
 	DRAMDomain *m_pDRAM;
 
 private:

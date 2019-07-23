@@ -50,7 +50,7 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 	reset();
 
 	// Generate all the fault events that will happen
-	std::vector<FaultRange *> q1;
+	std::vector<std::pair<double, FaultRange *>> q1;
 	for (FaultDomain *fd: m_domains)
 		for (FaultDomain *fd: fd->getChildren())
 		{
@@ -64,27 +64,29 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 							currtime += pD->next_fault_event(fault, transient))
 				{
 					FaultRange *fr = pD->genRandomRange(fault, transient);
-					fr->timestamp = currtime;
 					if (fr->transient)
 						fr->m_pDRAM->n_faults_transient++;
 					else
 						fr->m_pDRAM->n_faults_permanent++;
 
-					q1.push_back(fr);
+					q1.push_back(std::make_pair(currtime, fr));
 				}
 			}
 		}
 
 	// Sort the fault events in arrival order
-	std::sort(q1.begin(), q1.end(), [] (FaultRange *f1, FaultRange *f2) { return (f1->timestamp < f2->timestamp); });
+	std::sort(q1.begin(), q1.end(), [] (auto &a, auto &b) { return (a.first < b.first); });
 
 
 	uint64_t errors = 0;
 	uint64_t last_scrub_interval = 0;
 
 	// Step through the event list, injecting a fault into corresponding chip at each event, and invoking ECC
-	for (FaultRange *fr: q1)
+	for (auto &time_fault_pair: q1)
 	{
+		double timestamp = time_fault_pair.first;
+		FaultRange *fr = time_fault_pair.second;
+
 		DRAMDomain *pDRAM = fr->m_pDRAM;
 		pDRAM->getRanges().push_back(fr);
 
@@ -109,7 +111,7 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 
 		if (n_undetected || n_uncorrected)
 		{
-			uint64_t bin = fr->timestamp / bin_length;
+			uint64_t bin = timestamp / bin_length;
 			fail_time_bins[bin]++;
 
 			if (n_uncorrected > 0)
@@ -128,7 +130,7 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 		}
 
 		// Scrubbing is performed after a fault has occured and if a full scrub interval has passed since the last time
-		uint64_t scrub_interval = fr->timestamp / m_scrub_interval;
+		uint64_t scrub_interval = timestamp / m_scrub_interval;
 		if (last_scrub_interval < scrub_interval)
 		{
 			last_scrub_interval = scrub_interval;
