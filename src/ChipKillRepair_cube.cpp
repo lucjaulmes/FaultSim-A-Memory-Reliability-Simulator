@@ -34,7 +34,7 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 	logBits = DRAMchip->getLogBits();
 	logCols = DRAMchip->getLogCols();
 	logRows = DRAMchip->getLogRows();
-	banks = DRAMchip->getBanks();
+	banks = 1 << DRAMchip->getLogBanks();
 }
 
 std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(FaultDomain *fd)

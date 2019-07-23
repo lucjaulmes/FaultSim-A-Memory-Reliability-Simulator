@@ -57,11 +57,23 @@ DRAMDomain::DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32
 
 	n_faults_transient_tsv = n_faults_permanent_tsv = 0;
 
-	m_logRanks = log2(m_ranks);
-	m_logBanks = log2(m_banks);
-	m_logRows = log2(m_rows);
-	m_logCols = log2(m_cols);
-	m_logBits = log2(m_bitwidth);
+	m_logsize[BITS]  = log2(m_bitwidth);
+	m_logsize[COLS]  = log2(m_cols);
+	m_logsize[ROWS]  = log2(m_rows);
+	m_logsize[BANKS] = log2(m_banks);
+	m_logsize[RANKS] = log2(m_ranks);
+
+	m_shift[BITS]  = 0;
+	m_shift[COLS]  = m_logsize[BITS];
+	m_shift[ROWS]  = m_logsize[BITS] + m_logsize[COLS];
+	m_shift[BANKS] = m_logsize[BITS] + m_logsize[COLS] + m_logsize[ROWS];
+	m_shift[RANKS] = m_logsize[BITS] + m_logsize[COLS] + m_logsize[ROWS] + m_logsize[BANKS];
+
+	m_mask[BITS]  = (m_bitwidth - 1) << m_shift[BITS];
+	m_mask[COLS]  = (m_cols     - 1) << m_shift[COLS];
+	m_mask[ROWS]  = (m_rows     - 1) << m_shift[ROWS];
+	m_mask[BANKS] = (m_banks    - 1) << m_shift[BANKS];
+	m_mask[RANKS] = (m_ranks    - 1) << m_shift[RANKS];
 
 	curr_interval = 0;
 
@@ -361,32 +373,26 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 
 	// parameter 1 = fixed, 0 = wild
 	if (rank)
-		fr->fAddr |= (uint64_t)(eng32() % m_ranks);
+		setRanks(fr->fAddr, eng32() % m_ranks);
 	else
 	{
-		fr->fWildMask |= (uint64_t)(m_ranks - 1);
+		setRanks(fr->fWildMask, m_ranks - 1);
 		fr->max_faults *= m_ranks;
 	}
 
-	fr->fAddr <<= m_logBanks;
-	fr->fWildMask <<= m_logBanks;
-
 	if (bank)
-		fr->fAddr |= (uint64_t)(eng32() % m_banks);
+		setBanks(fr->fAddr, eng32() % m_banks);
 	else
 	{
-		fr->fWildMask |= (uint64_t)(m_banks - 1);
+		setBanks(fr->fWildMask, m_banks - 1);
 		fr->max_faults *= m_banks;
 	}
 
-	fr->fAddr <<= m_logRows;
-	fr->fWildMask <<= m_logRows;
-
 	if (row)
-		fr->fAddr |= (uint64_t)(eng32() % m_rows);
+		setRows(fr->fAddr, eng32() % m_rows);
 	else
 	{
-		fr->fWildMask |= (uint64_t)(m_rows - 1);
+		setRows(fr->fWildMask, m_rows - 1);
 		fr->max_faults *= m_rows;
 	}
 
@@ -394,25 +400,19 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 	// so generate column and bit values as normal
 	if (rowbit_num == -1)
 	{
-		fr->fAddr <<= m_logCols;
-		fr->fWildMask <<= m_logCols;
-
 		if (col)
-			fr->fAddr |= (uint64_t)(eng32() % m_cols);
+			setCols(fr->fAddr, eng32() % m_cols);
 		else
 		{
-			fr->fWildMask |= (uint64_t)(m_cols - 1);
+			setCols(fr->fWildMask, m_cols - 1);
 			fr->max_faults *= m_cols;
 		}
 
-		fr->fAddr <<= m_logBits;
-		fr->fWildMask <<= m_logBits;
-
 		if (bit)
-			fr->fAddr |= (uint64_t)(eng32() % m_bitwidth);
+			setBits(fr->fAddr, eng32() % m_bitwidth);
 		else
 		{
-			fr->fWildMask |= (uint64_t)(m_bitwidth - 1);
+			setBits(fr->fWildMask, m_bitwidth - 1);
 			fr->max_faults *= m_bitwidth;
 		}
 	}
@@ -420,62 +420,10 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 	{
 		// For TSV faults we're specifying a single bit position in the row
 		// so we treat the column and bit fields as a single field
-		fr->fAddr <<= (m_logCols + m_logBits);
-		fr->fWildMask <<= (m_logCols + m_logBits);
-
 		fr->fAddr |= (uint64_t)(rowbit_num);
 	}
 
 	return fr;
-}
-
-uint32_t DRAMDomain::getLogBits()
-{
-	return m_logBits;
-}
-
-uint32_t DRAMDomain::getLogRanks()
-{
-	return m_logRanks;
-}
-
-uint32_t DRAMDomain::getLogBanks()
-{
-	return m_logBanks;
-}
-
-uint32_t DRAMDomain::getLogCols()
-{
-	return m_logCols;
-}
-uint32_t DRAMDomain::getLogRows()
-{
-	return m_logRows;
-}
-
-uint32_t DRAMDomain::getBits()
-{
-	return m_bitwidth;
-}
-
-uint32_t DRAMDomain::getRanks()
-{
-	return m_ranks;
-}
-
-uint32_t DRAMDomain::getRows()
-{
-	return m_rows;
-}
-
-uint32_t DRAMDomain::getCols()
-{
-	return m_cols;
-}
-
-uint32_t DRAMDomain::getBanks()
-{
-	return m_banks;
 }
 
 void DRAMDomain::printStats()

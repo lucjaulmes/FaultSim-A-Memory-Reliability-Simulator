@@ -46,18 +46,6 @@ public:
 	void dumpState();
 	void printStats();
 	void resetStats();
-	uint32_t getLogBits();
-	uint32_t getLogRanks();
-	uint32_t getLogBanks();
-	uint32_t getLogRows();
-	uint32_t getLogCols();
-
-	uint32_t getBits();
-	uint32_t getRanks();
-	uint32_t getBanks();
-	uint32_t getRows();
-	uint32_t getCols();
-
 
 	// based on a fault, create the range of all faulty addresses
 	void generateRanges(fault_class_t faultClass, bool transient);
@@ -91,8 +79,42 @@ protected:
 
 	uint64_t n_faults_transient_tsv, n_faults_permanent_tsv;
 
+
+	enum field { BITS = 0, COLS, ROWS, BANKS, RANKS, FIELD_MAX };
 	uint32_t m_bitwidth, m_ranks, m_banks, m_rows, m_cols;
-	uint32_t m_logBits, m_logRanks, m_logBanks, m_logRows, m_logCols;
+	uint32_t m_logsize[FIELD_MAX], m_shift[FIELD_MAX];
+	uint64_t m_mask[FIELD_MAX];
+
+	template <enum field F>
+	inline uint32_t getFieldSize() { return m_logsize[F]; }
+
+	template <enum field F>
+	inline uint32_t getField(uint64_t address) { return (address & m_mask[F]) >> m_shift[F]; }
+
+	template <enum field F>
+	inline void setField(uint64_t &address, int32_t value)
+	{
+		address = (address & ~m_mask[F]) | ((static_cast<uint64_t>(value) << m_shift[F]) & m_mask[F]);
+	}
+
+public:
+	inline uint32_t getLogBits () { return getFieldSize<BITS>(); }
+	inline uint32_t getLogCols () { return getFieldSize<COLS>(); }
+	inline uint32_t getLogRows () { return getFieldSize<ROWS>(); }
+	inline uint32_t getLogBanks() { return getFieldSize<BANKS>(); }
+	inline uint32_t getLogRanks() { return getFieldSize<RANKS>(); }
+
+	inline uint32_t getBits (uint64_t address) { return getField<BITS>(address); }
+	inline uint32_t getCols (uint64_t address) { return getField<COLS>(address); }
+	inline uint32_t getRows (uint64_t address) { return getField<ROWS>(address); }
+	inline uint32_t getBanks(uint64_t address) { return getField<BANKS>(address); }
+	inline uint32_t getRanks(uint64_t address) { return getField<RANKS>(address); }
+
+	inline void setBits (uint64_t &address, uint32_t value) { setField<BITS>(address, value); }
+	inline void setCols (uint64_t &address, uint32_t value) { setField<COLS>(address, value); }
+	inline void setRows (uint64_t &address, uint32_t value) { setField<ROWS>(address, value); }
+	inline void setBanks(uint64_t &address, uint32_t value) { setField<BANKS>(address, value); }
+	inline void setRanks(uint64_t &address, uint32_t value) { setField<RANKS>(address, value); }
 };
 
 
