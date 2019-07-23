@@ -52,7 +52,7 @@ protected:
 	uint64_t m_output_bucket;
 
 
-	uint64_t stat_total_failures, stat_total_sims, stat_sim_seconds;
+	uint64_t stat_total_failures, stat_total_corrected, stat_total_sims, stat_sim_seconds;
 
 	uint64_t *fail_time_bins;
 	uint64_t *fail_uncorrectable;

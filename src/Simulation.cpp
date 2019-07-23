@@ -78,6 +78,7 @@ void Simulation::finalize()
 void Simulation::resetStats()
 {
 	stat_total_failures = 0;
+	stat_total_corrected = 0;
 	stat_total_sims = 0;
 	stat_sim_seconds = 0;
 }
@@ -129,6 +130,7 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 		}
 		else if (trans + perm != 0)
 		{
+			stat_total_corrected++;
 			if (verbose) std::cout << "C";    // corrected
 		}
 		else
@@ -146,6 +148,10 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 		std::cout << "# SIMULATION ENDS\n";
 		std::cout << "# ===================================================================\n";
 	}
+
+	std::cout << "Out of " << stat_total_sims << " simulations, "
+			<< stat_total_failures << " failed and "
+			<< stat_total_corrected << " encountered correctable errors\n";
 
 	std::ofstream opfile(output_file);
 	if (!opfile.is_open())
