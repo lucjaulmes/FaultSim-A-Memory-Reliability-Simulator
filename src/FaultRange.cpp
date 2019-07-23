@@ -20,6 +20,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <string>
+#include <sstream>
 
 #include "DRAMDomain.hh"
 #include "FaultRange.hh"
@@ -38,7 +39,7 @@ FaultRange::FaultRange(DRAMDomain *pDRAM) :
 	TSV = false;
 }
 
-bool FaultRange::intersects(FaultRange *fr)
+bool FaultRange::intersects(FaultRange *fr) const
 {
 	uint64_t fAddr0 = fAddr;
 	uint64_t fMask0 = fWildMask;
@@ -52,44 +53,25 @@ bool FaultRange::intersects(FaultRange *fr)
 	return finalterm == 0;
 }
 
-std::string FaultRange::toString()
+std::string FaultRange::toString() const
 {
-	char buf[100];
+	std::ostringstream build;
 
-	uint64_t fA = fAddr;
-	uint64_t fM = fWildMask;
+	build << (transient ? "transient" : "permanent") << " TSV " << TSV;
+	build << ' ' << m_pDRAM->faultClassString(m_pDRAM->maskClass(fWildMask));
 
-	// decode address
-	uint fbit = fA & ((0x1 << m_pDRAM->getLogBits()) - 1);
-	fA >>= m_pDRAM->getLogBits();
-	uint fcol = fA & ((0x1 << m_pDRAM->getLogCols()) - 1);
-	fA >>= m_pDRAM->getLogCols();
-	uint frow = fA & ((0x1 << m_pDRAM->getLogRows()) - 1);
-	fA >>= m_pDRAM->getLogRows();
-	uint fbank = fA & ((0x1 << m_pDRAM->getLogBanks()) - 1);
-	fA >>= m_pDRAM->getLogBanks();
-	uint frank = fA & ((0x1 << m_pDRAM->getLogRanks()) - 1);
-	fA >>= m_pDRAM->getLogRanks();
+	build << " fAddr("  << m_pDRAM->getRanks(fAddr)
+				 << ',' << m_pDRAM->getBanks(fAddr)
+				 << ',' << m_pDRAM->getRows(fAddr)
+				 << ',' << m_pDRAM->getCols(fAddr)
+				 << ',' << m_pDRAM->getBits(fAddr) << ')';
 
-	// decode mask
-	uint mbit = fM & ((0x1 << m_pDRAM->getLogBits()) - 1);
-	fM >>= m_pDRAM->getLogBits();
-	uint mcol = fM & ((0x1 << m_pDRAM->getLogCols()) - 1);
-	fM >>= m_pDRAM->getLogCols();
-	uint mrow = fM & ((0x1 << m_pDRAM->getLogRows()) - 1);
-	fM >>= m_pDRAM->getLogRows();
-	uint mbank = fM & ((0x1 << m_pDRAM->getLogBanks()) - 1);
-	fM >>= m_pDRAM->getLogBanks();
-	uint mrank = fM & ((0x1 << m_pDRAM->getLogRanks()) - 1);
-	fM >>= m_pDRAM->getLogRanks();
-
-	//sprintf( buf, "trans %d fAddr 0x%lX fMask 0x%lX", transient, fAddr, fWildMask );
-
-	sprintf(buf, "TSV %d trans %d fAddr (%d,%d,%d,%d,%d) fMask 0x(%X,%X,%X,%X,%X)", TSV, transient,
-	    frank, fbank, frow, fcol, fbit,
-	    mrank, mbank, mrow, mcol, mbit);
-
-	return std::string(buf);
+	build << std::hex << " fMask 0x(" << m_pDRAM->getRanks(fWildMask)
+							   << ',' << m_pDRAM->getBanks(fWildMask)
+							   << ',' << m_pDRAM->getRows(fWildMask)
+							   << ',' << m_pDRAM->getCols(fWildMask)
+							   << ',' << m_pDRAM->getBits(fWildMask) << ')';
+	return build.str();
 }
 
 void FaultRange::clear()

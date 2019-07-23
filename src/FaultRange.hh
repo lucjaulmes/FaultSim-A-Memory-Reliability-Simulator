@@ -34,11 +34,11 @@ class FaultRange
 public:
 	FaultRange(DRAMDomain *pDRAM);
 	// does this FR intersect with the supplied FR?
-	bool intersects(FaultRange *fr);
+	bool intersects(FaultRange *fr) const;
 	// How many bits in any sym_bits-wide symbol could be faulty?
 	//uint64_t maxFaultyBits( uint64_t sym_bits );
 	bool isTSV();
-	std::string toString();   // for debugging
+	std::string toString() const;   // for debugging
 
 	void clear();
 
@@ -57,6 +57,11 @@ public:
 	uint32_t Chip;
 
 	DRAMDomain *m_pDRAM;
+
+	inline friend std::ostream& operator<< (std::ostream& stream, const FaultRange& fr) {
+		stream << fr.toString();
+		return stream;
+	}
 
 private:
 	std::list<FaultRange> m_children;    // 'smaller' ranges contained within this one

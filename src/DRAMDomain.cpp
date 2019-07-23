@@ -98,37 +98,62 @@ std::list<FaultRange *> &DRAMDomain::getRanges()
 	return m_faultRanges;
 }
 
-const char *DRAMDomain::faultClassString(int i)
+const std::list<FaultRange *> &DRAMDomain::getRanges() const
+{
+	return m_faultRanges;
+}
+
+fault_class_t DRAMDomain::maskClass(uint64_t mask)
+{
+	// rank bits set in mask => several ranks affected.
+	// repeat in decreasing hierarchical order.
+	if (getRanks(mask))
+		return DRAM_NRANK;
+
+	else if (getBanks(mask))
+		return DRAM_NBANK;
+
+	// a bank needs both row and col wildcards to be failed, otherwise it is a row or column failure
+	else if (getRows(mask) && getCols(mask))
+		return DRAM_1BANK;
+
+	else if (getRows(mask))
+		return DRAM_1COL;
+
+	else if (getCols(mask))
+		return DRAM_1ROW;
+
+	else if (getBits(mask))
+		return DRAM_1WORD;
+
+	else
+		return DRAM_1BIT;
+}
+
+const char *DRAMDomain::faultClassString(fault_class_t i)
 {
 	switch (i)
 	{
 		case DRAM_1BIT:
 			return "1BIT";
-			break;
 
 		case DRAM_1WORD:
 			return "1WORD";
-			break;
 
 		case DRAM_1COL:
 			return "1COL";
-			break;
 
 		case DRAM_1ROW:
 			return "1ROW";
-			break;
 
 		case DRAM_1BANK:
 			return "1BANK";
-			break;
 
 		case DRAM_NBANK:
 			return "NBANK";
-			break;
 
 		case DRAM_NRANK:
 			return "NRANK";
-			break;
 
 		default:
 			assert(0);

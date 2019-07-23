@@ -42,6 +42,7 @@ public:
 	virtual void reset();
 
 	std::list<FaultRange *> &getRanges();
+	const std::list<FaultRange *> &getRanges() const;
 
 	void dumpState();
 	void printStats();
@@ -55,7 +56,8 @@ public:
 	double next_fault_event(fault_class_t faultClass, bool transient);
 	bool fault_in_interval(fault_class_t faultClass, bool transient);
 
-	const char *faultClassString(int i);
+	fault_class_t maskClass(uint64_t mask);
+	static const char *faultClassString(fault_class_t i);
 
 protected:
 	struct fault_param { double transient, permanent ;};
