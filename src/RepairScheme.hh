@@ -36,9 +36,10 @@ public:
 	virtual std::pair<uint64_t, uint64_t> repair(FaultDomain *fd) = 0;
 	virtual uint64_t fill_repl(FaultDomain *fd);
 	virtual void clear_counters() {};
+	virtual void reset() {};
 
-	void printStats();
-	void resetStats();
+	virtual void printStats();
+	virtual void resetStats();
 
 protected:
 	std::string m_name;

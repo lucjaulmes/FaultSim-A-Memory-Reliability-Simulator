@@ -69,6 +69,9 @@ void FaultDomain::reset()
 
 	for (FaultDomain *fd: m_children)
 		fd->reset();
+
+	for (RepairScheme *rs: m_repairSchemes)
+		rs->reset();
 }
 
 void FaultDomain::dumpState()
@@ -292,6 +295,9 @@ void FaultDomain::finalize()
 
 void FaultDomain::printStats()
 {
+	for (RepairScheme *rs: m_repairSchemes)
+		rs->printStats();
+
 	for (FaultDomain *fd: m_children)
 		fd->printStats();
 
