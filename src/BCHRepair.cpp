@@ -85,6 +85,10 @@ std::pair<uint64_t, uint64_t> BCHRepair::repair(FaultDomain *fd)
 				{
 					// for each other chip including the current one, count number of intersecting faults
 					for (FaultDomain *fd1: pChips)
+					{
+						// only iterate on pairs of chips, here fd1 < fd0 always
+						if (fd1 == fd0) break;
+
 						for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(fd1)->getRanges())
 							if (frTemp.intersects(fr1) && (fr1->touched < fr1->max_faults))
 							{
@@ -92,6 +96,7 @@ std::pair<uint64_t, uint64_t> BCHRepair::repair(FaultDomain *fd)
 								n_intersections += 1;
 								break;
 							}
+					}
 
 					frTemp.fAddr = frTemp.fAddr + 1;
 				}

@@ -58,6 +58,10 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 			{
 				// for each other chip, count number of intersecting faults
 				for (FaultDomain *chip1: pChips)
+				{
+					// only iterate on pairs of chips, here chip1 < chip0 always
+					if (chip1 == chip0) break;
+
 					for (FaultRange *fr1: dynamic_cast<DRAMDomain*>(chip1)->getRanges())
 						if (frTemp.intersects(fr1))
 						// && (fr1->touched < fr1->max_faults)
@@ -66,6 +70,7 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 							n_intersections++;
 							break;
 						}
+				}
 			}
 			if (n_intersections <= m_n_correct)
 			{
