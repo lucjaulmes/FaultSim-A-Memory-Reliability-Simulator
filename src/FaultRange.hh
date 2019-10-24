@@ -24,6 +24,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <list>
+#include <tuple>
 
 
 class DRAMDomain;
@@ -39,6 +40,8 @@ public:
 	//uint64_t maxFaultyBits( uint64_t sym_bits );
 	bool isTSV();
 	std::string toString() const;   // for debugging
+
+	void intersection(const FaultRange &fr);
 
 	void clear();
 
