@@ -19,6 +19,7 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,10 +30,23 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Settings.hh"
 
-void parse_settings(const std::string &ininame)
+int parse_settings(const std::string &ininame, std::vector<std::string> &config_overrides)
 {
 	boost::property_tree::ptree pt;
 	boost::property_tree::ini_parser::read_ini(ininame.c_str(), pt);
+
+	std::cout << "The selected config file is: " << ininame << std::endl;
+	for (const std::string &opt: config_overrides)
+	{
+		auto pos = opt.find_first_of("=");
+		if (pos == std::string::npos)
+		{
+			std::cout << "ERROR: Invalid option on command line: " << opt << std::endl;
+			return 1;
+		}
+		pt.put(opt.substr(0, pos), opt.substr(pos + 1));
+		std::cout << "  + override " << opt.substr(0, pos) << '=' << opt.substr(pos + 1) << std::endl;
+	}
 
 	settings.sim_mode = pt.get<int>("Sim.sim_mode");
 	settings.interval_s = pt.get<uint64_t>("Sim.interval_s");
@@ -65,4 +79,6 @@ void parse_settings(const std::string &ininame)
 	settings.tsv_fit = pt.get<double>("Fault.tsv_fit");
 
 	settings.repairmode = pt.get<int>("ECC.repairmode");
+
+	return 0;
 }

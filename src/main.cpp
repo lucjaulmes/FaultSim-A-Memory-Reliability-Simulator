@@ -62,16 +62,21 @@ int main(int argc, char **argv)
 	namespace po = boost::program_options;
 	po::options_description desc("Options");
 	std::string configfile;
+	std::vector<std::string> config_overrides;
 
 	desc.add_options()
 		("help", "Print help messages")
+		("config", po::value<std::vector<std::string>>(&config_overrides), "Manually specify configuration file items as section.key=value")
 		("outfile", po::value<std::string>(&settings.output_file)->required(), "Output file name")
 		("configfile", po::value<std::string>(&configfile), "Indicate .ini configuration file to use");
+
+	po::positional_options_description pd;
+	pd.add("configfile", 1).add("outfile", 1);
 
 	po::variables_map vm;
 	try
 	{
-		po::store(po::parse_command_line(argc, argv, desc), vm);
+		po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
 
 		/** --help option */
 		if ((argc == 1) || vm.count("help"))
@@ -96,8 +101,8 @@ int main(int argc, char **argv)
 
 	}
 
-	std::cout << "The selected config file is: " << configfile << std::endl;
-	parse_settings(configfile);
+	if (parse_settings(configfile, config_overrides))
+		return ERROR_IN_COMMAND_LINE;
 
 	// Build the physical memory organization and attach ECC scheme /////
 	GroupDomain *module = NULL;

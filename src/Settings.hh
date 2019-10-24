@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SETTINGS_HH_
 
 #include <string>
+#include <vector>
 
 struct Settings
 {
@@ -65,6 +66,6 @@ struct Settings
 
 extern struct Settings settings;
 
-void parse_settings(const std::string &ininame);
+int parse_settings(const std::string &ininame, std::vector<std::string> &config_overrides);
 
 #endif // SETTINGS_HH_
