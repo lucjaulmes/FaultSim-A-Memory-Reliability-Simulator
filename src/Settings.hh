@@ -41,7 +41,7 @@ struct Settings
 	uint64_t output_bucket_s; // Seconds per output histogram bucket
 
 	// Memory system physical configuration
-	int organization;   // Which topology to simulate e.g. DIMM or 3D stack
+	int stack_3D;   // Which topology to simulate e.g. DIMM or 3D stack
 	// Settings for all DRAMs
 	uint chips_per_rank, chip_bus_bits, ranks, banks, rows, cols;
 

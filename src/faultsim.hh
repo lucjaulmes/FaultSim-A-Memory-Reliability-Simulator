@@ -28,8 +28,4 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FM_UNIFORM_BIT 0
 #define FM_JAGUAR      1
 
-// Memory organizations
-#define MO_DIMM 0
-#define MO_3D 1
-
 #endif /* FAULTSIM_HH_ */

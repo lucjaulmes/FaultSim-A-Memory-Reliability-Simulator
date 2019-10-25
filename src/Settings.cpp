@@ -58,7 +58,7 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 	settings.debug = pt.get<int>("Sim.debug");
 	settings.output_bucket_s = pt.get<uint64_t>("Sim.output_bucket_s");
 
-	settings.organization = pt.get<int>("Org.organization");
+	settings.stack_3D = pt.get<int>("Org.stack_3D");
 	settings.chips_per_rank = pt.get<int>("Org.chips_per_rank");
 	settings.chip_bus_bits = pt.get<int>("Org.chip_bus_bits");
 	settings.ranks = pt.get<int>("Org.ranks");

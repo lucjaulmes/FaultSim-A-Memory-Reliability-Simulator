@@ -107,9 +107,9 @@ int main(int argc, char **argv)
 	// Build the physical memory organization and attach ECC scheme /////
 	GroupDomain *module = NULL;
 
-	if (settings.organization == MO_DIMM)
+	if (!settings.stack_3D)
 		module = genModuleDIMM();
-	else if (settings.organization == MO_3D)
+	else
 		module = genModule3D();
 
 	// Configure simulator ///////////////////////////////////////////////
