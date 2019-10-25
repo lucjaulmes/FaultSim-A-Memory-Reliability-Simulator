@@ -32,6 +32,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size)
 	: RepairScheme(name), m_n_correct(n_sym_correct), m_n_detect(n_sym_detect), m_symbol_mask((1ULL << log_symbol_size) - 1)
+	, m_failure_sizes()
 {
 }
 
@@ -134,6 +135,12 @@ std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(Fault
 				fr->transient_remove = false;
 		}
 
+		if (intersection.chip_count() > 0)
+		{
+			fault_class_t cls = intersection.m_pDRAM->maskClass(intersection.fWildMask);
+			m_failure_sizes[std::make_pair(cls, intersection.chip_count())]++;
+		}
+
 		error_intersection.pop();
 	}
 
@@ -196,11 +203,27 @@ uint64_t ChipKillRepair::fill_repl(FaultDomain *fd)
 
 void ChipKillRepair::printStats()
 {
+	std::cout << "Failure sizes\nsize";
+	for (size_t nsym = 1; nsym <= m_n_detect + 1; nsym++)
+		std::cout << ':' << nsym << "_sym";
+	std::cout << '\n';
+
+	for (int cls = DRAM_1WORD; cls < DRAM_MAX; cls++)
+	{
+		std::cout << DRAMDomain::faultClassString(fault_class_t(cls));
+		for (size_t nsym = 1; nsym <= m_n_detect + 1; nsym++)
+			std::cout << ':' << m_failure_sizes[std::make_pair(cls, nsym)];
+		std::cout << '\n';
+	}
+	std::cout << std::endl;
+
 	RepairScheme::printStats();
 }
 
 void ChipKillRepair::resetStats()
 {
+	m_failure_sizes.clear();
+
 	RepairScheme::resetStats();
 }
 

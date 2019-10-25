@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHIPKILLREPAIR_HH_
 
 #include <string>
+#include <map>
 
 #include "dram_common.hh"
 #include "RepairScheme.hh"
@@ -42,6 +43,7 @@ public:
 
 private:
 	const uint64_t m_n_correct, m_n_detect, m_symbol_mask;
+	std::map<std::pair<size_t, size_t>, size_t> m_failure_sizes;
 
 	void remove_duplicate_failures(std::list<FaultIntersection> &failures);
 	std::list<FaultIntersection> compute_failure_intersections(FaultDomain *fd);
