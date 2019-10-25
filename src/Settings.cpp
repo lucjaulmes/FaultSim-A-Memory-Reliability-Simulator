@@ -28,7 +28,48 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
+#include "dram_common.hh"
 #include "Settings.hh"
+
+// make a boost::property_tree::id_translator for std containers
+template<typename T> struct container_translator
+{
+	typedef std::string internal_type;
+	typedef T external_type;
+
+	boost::optional<T> get_value(const std::string& str) const
+	{
+		if (str.empty())
+			return boost::none;
+
+		T values;
+		std::stringstream ss(str);
+
+		typename T::value_type temp_value;
+		while (ss >> temp_value)
+			values.insert(values.end(), temp_value);
+
+		return boost::make_optional(values);
+	}
+
+	boost::optional<std::string> put_value(const T& b) {
+		std::stringstream ss;
+		size_t i = 0;
+		for (auto v : b)
+			ss << (i++?" ":"") << v;
+		return ss.str();
+	}
+};
+
+
+// put the translator in the namespace for std::vector<T>
+namespace boost::property_tree {
+    template<typename ch, typename traits, typename alloc, typename T>
+	struct translator_between<std::basic_string<ch, traits, alloc>, std::vector<T> > {
+		typedef container_translator<std::vector<T>> type;
+	};
+}
+
 
 int parse_settings(const std::string &ininame, std::vector<std::string> &config_overrides)
 {
@@ -79,6 +120,13 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 	settings.tsv_fit = pt.get<double>("Fault.tsv_fit");
 
 	settings.repairmode = pt.get<int>("ECC.repairmode");
+
+	// specify all the tolerance probabilities, in order, starting with 1WORD
+	// e.g. ".9 0 .1" means 90% tolerance of 1WORD DUEs, 0% of 1COL DUEs, and 10% of 1ROW DUEs
+	settings.due_tol = pt.get<std::vector<double>>("ECC.due_tol", {0.});
+	settings.due_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
+	// set 1BIT = 1WORD
+	settings.due_tol.insert(settings.due_tol.begin(), settings.due_tol.front());
 
 	return 0;
 }

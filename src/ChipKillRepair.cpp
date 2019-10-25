@@ -33,7 +33,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size)
 	: RepairScheme(name), m_n_correct(n_sym_correct), m_n_detect(n_sym_detect), m_symbol_mask((1ULL << log_symbol_size) - 1)
 	, m_failure_sizes()
+	, m_duetol(DRAM_MAX, 0.), gen(random64_engine_t(), random_uniform_t(0, 1))
 {
+}
+
+void ChipKillRepair::allow_software_tolerance(std::vector<double> tolerating_probability)
+{
+	assert(tolerating_probability.size() == DRAM_MAX);
+	m_duetol = tolerating_probability;
 }
 
 std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
@@ -50,6 +57,8 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 
 	remove_duplicate_failures(sdc);
 	remove_duplicate_failures(due);
+
+	software_tolerate_failures(due);
 
 	for (auto fail: due)
 		for (FaultRange *fr: fail.intersecting)
@@ -128,12 +137,6 @@ std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(Fault
 		// NB: for double chipkill we might mark a triple error and a double error containing this triple error
 		if (intersection.chip_count() > m_n_correct)
 			failures.push_back(intersection);
-		{
-			failures.push_back(intersection);
-
-			for (FaultRange *fr: intersection.intersecting)
-				fr->transient_remove = false;
-		}
 
 		if (intersection.chip_count() > 0)
 		{
@@ -145,6 +148,15 @@ std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(Fault
 	}
 
 	return failures;
+}
+
+void ChipKillRepair::software_tolerate_failures(std::list<FaultIntersection> &failures)
+{
+	for (auto it = failures.begin(); it != failures.end();)
+		if (/*it->transient && */ gen() < m_duetol.at(it->m_pDRAM->maskClass(it->fWildMask)))
+			it = failures.erase(it);
+		else
+			++it;
 }
 
 void ChipKillRepair::remove_duplicate_failures(std::list<FaultIntersection> &failures)

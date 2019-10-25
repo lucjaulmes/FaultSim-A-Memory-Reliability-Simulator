@@ -213,11 +213,13 @@ GroupDomain *genModuleDIMM()
 	else if (settings.repairmode == 1)
 	{
 		ChipKillRepair *ck0 = new ChipKillRepair(std::string("CK1"), 1, 2);
+		ck0->allow_software_tolerance(settings.due_tol);
 		dimm0->addRepair(ck0);
 	}
 	else if (settings.repairmode == 2)
 	{
 		ChipKillRepair *ck0 = new ChipKillRepair(std::string("CK2"), 2, 4);
+		ck0->allow_software_tolerance(settings.due_tol);
 		dimm0->addRepair(ck0);
 	}
 	else if (settings.repairmode == 3)
