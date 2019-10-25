@@ -108,23 +108,23 @@ fault_class_t DRAMDomain::maskClass(uint64_t mask)
 {
 	// rank bits set in mask => several ranks affected.
 	// repeat in decreasing hierarchical order.
-	if (getRanks(mask))
+	if (m_mask[RANKS] && (mask & m_mask[RANKS]) == m_mask[RANKS])
 		return DRAM_NRANK;
 
-	else if (getBanks(mask))
+	else if (m_mask[BANKS] && (mask & m_mask[BANKS]) == m_mask[BANKS])
 		return DRAM_NBANK;
 
 	// a bank needs both row and col wildcards to be failed, otherwise it is a row or column failure
-	else if (getRows(mask) && getCols(mask))
+	else if (m_mask[ROWS] && (mask & m_mask[ROWS]) == m_mask[ROWS] && m_mask[COLS] && (mask & m_mask[COLS]) == m_mask[COLS])
 		return DRAM_1BANK;
 
-	else if (getRows(mask))
+	else if (m_mask[ROWS] && (mask & m_mask[ROWS]) == m_mask[ROWS])
 		return DRAM_1COL;
 
-	else if (getCols(mask))
+	else if (m_mask[COLS] && (mask & m_mask[COLS]) == m_mask[COLS])
 		return DRAM_1ROW;
 
-	else if (getBits(mask))
+	else if (m_mask[BITS] && (mask & m_mask[BITS]) == m_mask[BITS])
 		return DRAM_1WORD;
 
 	else
