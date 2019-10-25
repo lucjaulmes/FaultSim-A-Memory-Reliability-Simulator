@@ -185,13 +185,18 @@ std::pair<uint64_t, uint64_t> FaultDomain::repair()
 		n_undetectable += child_undet;
 	}
 
+	// -- so here we reset n_undetectable and n_uncorrectable ?!
+
 	// repair myself
 	// default to the number of faults in myself and all children, in case there are no repair schemes
 	uint64_t faults_before_repair = getFaultCountPerm() + getFaultCountTrans();
 	n_undetectable = n_uncorrectable = faults_before_repair;
 
+	// iteratively reduce number of faults with each successive repair scheme.
 	for (RepairScheme *rs: m_repairSchemes)
 	{
+		// TODO: would be nice to share information between repair schemes,
+		// so that a scheme can act on the outputs/results of the previous one(s)
 		uint64_t uncorrectable_after_repair = 0;
 		uint64_t undetectable_after_repair = 0;
 		std::tie(undetectable_after_repair, uncorrectable_after_repair) = rs->repair(this);
@@ -312,6 +317,7 @@ void FaultDomain::printStats()
 	for (FaultDomain *fd: m_children)
 		fd->printStats();
 
+	// TODO: some slightly more advanced stats. At least some variability.
 	double sim_seconds_to_FIT = 3600e9 / m_sim_seconds;
 
 	double device_fail_rate = ((double)stat_n_failures) / ((double)stat_n_simulations);
