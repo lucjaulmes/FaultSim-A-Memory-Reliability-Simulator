@@ -178,7 +178,7 @@ GroupDomain *genModuleDIMM()
 		{
 			if (settings.enable_transient)
 			{
-				dram0->setFIT(DRAM_1BIT,  transient, 14.2 * settings.fit_factor);
+				dram0->setFIT(DRAM_1BIT,  transient, 14.2 * settings.fit_factor * settings.scf_factor);
 				dram0->setFIT(DRAM_1WORD, transient,  1.4 * settings.fit_factor);
 				dram0->setFIT(DRAM_1COL,  transient,  1.4 * settings.fit_factor);
 				dram0->setFIT(DRAM_1ROW,  transient,  0.2 * settings.fit_factor);
@@ -189,7 +189,7 @@ GroupDomain *genModuleDIMM()
 
 			if (settings.enable_permanent)
 			{
-				dram0->setFIT(DRAM_1BIT,  not transient, 18.6 * settings.fit_factor);
+				dram0->setFIT(DRAM_1BIT,  not transient, 18.6 * settings.fit_factor * settings.scf_factor);
 				dram0->setFIT(DRAM_1WORD, not transient,  0.3 * settings.fit_factor);
 				dram0->setFIT(DRAM_1COL,  not transient,  5.6 * settings.fit_factor);
 				dram0->setFIT(DRAM_1ROW,  not transient,  8.2 * settings.fit_factor);

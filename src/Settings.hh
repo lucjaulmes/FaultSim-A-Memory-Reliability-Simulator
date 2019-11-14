@@ -55,6 +55,7 @@ struct Settings
 	// Fault models
 	int faultmode;          // Fault injection model (uniform random bit errors, Jaguar FIT rates etc.)
 	double fit_factor;      // Base FIT rate scaling factor for memory arrays
+	double scf_factor;      // Base SCF rate scaling factor for memory arrays
 	double tsv_fit;         // FIT rate for TSVs
 	bool enable_tsv;        // Enable TSV fault injection
 	bool enable_transient;  // Enable transient fault injection

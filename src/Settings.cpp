@@ -117,6 +117,7 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 	settings.enable_transient = pt.get<int>("Fault.enable_transient");
 	settings.enable_tsv = pt.get<int>("Fault.enable_tsv");
 	settings.fit_factor = pt.get<double>("Fault.fit_factor");
+	settings.scf_factor = pt.get<double>("Fault.scf_factor", 1.0);
 	settings.tsv_fit = pt.get<double>("Fault.tsv_fit");
 
 	settings.repairmode = pt.get<int>("ECC.repairmode");
