@@ -27,7 +27,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class EventSimulation : public Simulation
 {
 public:
-	EventSimulation(uint64_t interval_t, uint64_t scrub_interval_t, double fit_factor_t, uint test_mode_t,
+	EventSimulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test_mode_t,
 	    bool debug_mode_t,
 	    bool cont_running_t, uint64_t output_bucket_t);
 	// Simulation loop for a single simulation in Event Driven mode

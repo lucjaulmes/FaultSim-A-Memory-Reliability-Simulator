@@ -33,7 +33,7 @@ public:
 	~GroupDomain_cube();
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
-	void init(uint64_t interval, uint64_t max_s, double fit_factor);
+	void init(uint64_t interval, uint64_t max_s);
 	int update(uint test_mode_t);    // perform one iteration
 	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV);
 protected:

@@ -145,14 +145,13 @@ void FaultDomain::addDomain(FaultDomain *domain, uint32_t domaincounter)
 	m_children.push_back(domain);
 }
 
-void FaultDomain::init(uint64_t interval, uint64_t sim_seconds, double fit_factor)
+void FaultDomain::init(uint64_t interval, uint64_t sim_seconds)
 {
 	m_interval = interval;
 	m_sim_seconds = sim_seconds;
-	m_fit_factor = fit_factor;
 
 	for (FaultDomain *fd: m_children)
-		fd->init(interval, sim_seconds, fit_factor);
+		fd->init(interval, sim_seconds);
 }
 
 int FaultDomain::update(uint test_mode_t)

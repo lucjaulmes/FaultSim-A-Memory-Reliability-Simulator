@@ -54,7 +54,7 @@ public:
 	void addDomain(FaultDomain *domain, uint32_t domaincounter);
 	void addRepair(RepairScheme *repair);
 	// set up before first simulation run
-	virtual void init(uint64_t interval, uint64_t sim_seconds, double m_fit_factor);
+	virtual void init(uint64_t interval, uint64_t sim_seconds);
 	// accrue simulation-level statistics at end of each sim run
 	virtual void finalize();
 	// reset after each sim run
@@ -106,7 +106,7 @@ public:
 	uint64_t n_errors_uncorrected;
 	uint64_t n_errors_undetected;
 
-	uint64_t m_interval, m_sim_seconds, m_fit_factor;
+	uint64_t m_interval, m_sim_seconds;
 
 	// cross-simulation overall program run statistics
 	uint64_t stat_n_simulations, stat_n_failures, stat_n_failures_undetected, stat_n_failures_uncorrected;

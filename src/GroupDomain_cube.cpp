@@ -175,22 +175,21 @@ void GroupDomain_cube::setFIT_TSV(bool tsv_isTransient, double FIT_TSV)
 {
 	FaultDomain::setFIT_TSV(tsv_isTransient, FIT_TSV);
 }
-void GroupDomain_cube::init(uint64_t interval, uint64_t max_s, double fit_factor)
+void GroupDomain_cube::init(uint64_t interval, uint64_t max_s)
 {
 	m_interval = interval;
 	m_sim_seconds = max_s;
-	m_fit_factor = fit_factor;
 
 	double sec_per_hour = 60 * 60;
 	double interval_factor = (interval / sec_per_hour) / 1000000000.0;
-	tsv_transientFIT = (double)1.0 - exp(-tsv_transientFIT * fit_factor * interval_factor);
-	tsv_permanentFIT = (double)1.0 - exp(-tsv_permanentFIT * fit_factor * interval_factor);
+	tsv_transientFIT = (double)1.0 - exp(-tsv_transientFIT * interval_factor);
+	tsv_permanentFIT = (double)1.0 - exp(-tsv_permanentFIT * interval_factor);
 	assert(tsv_transientFIT >= 0);
 	assert(tsv_transientFIT <= 1);
 	assert(tsv_permanentFIT >= 0);
 	assert(tsv_permanentFIT <= 1);
 
-	FaultDomain::init(interval, max_s, fit_factor);
+	FaultDomain::init(interval, max_s);
 }
 
 void GroupDomain_cube::generateRanges(int faultClass)

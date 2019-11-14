@@ -118,23 +118,22 @@ int main(int argc, char **argv)
 	// Simulator settings are as follows:
 	// a. The setting.interval_s (in seconds) indicates the granularity of inserting/repairing faults.
 	// b. The setting.scrub_s (in seconds) indicates the granularity of scrubbing transient faults.
-	// c. The setting.fit_factor indicates the multiplicative factor for fit_rates.
-	// d. The setting.debug will enable debug messages
-	// e. The setting.continue_running will enable users to continue running even if an uncorrectable error occurs
+	// c. The setting.debug will enable debug messages
+	// d. The setting.continue_running will enable users to continue running even if an uncorrectable error occurs
 	//    (until an undetectable error occurs).
-	// f. The settings.output_bucket_s wil bucket system failure times
+	// e. The settings.output_bucket_s wil bucket system failure times
 	// NOTE: The test_mode setting allows the user to inject specific faults at very high FIT rates.
 	//		 This enables the user to test their ECC technique and also stress corner cases for fault specific ECC.
 	// NOTE: The test_mode setting is currently not implemented in the Event Based Simulator
 
 	if (settings.sim_mode == 1)
 	{
-		sim.reset(new Simulation(settings.interval_s, settings.scrub_s, settings.fit_factor, settings.test_mode,
+		sim.reset(new Simulation(settings.interval_s, settings.scrub_s, settings.test_mode,
 		            settings.debug, settings.continue_running, settings.output_bucket_s));
 	}
 	else if (settings.sim_mode == 2)
 	{
-		sim.reset(new EventSimulation(settings.interval_s, settings.scrub_s, settings.fit_factor, settings.test_mode,
+		sim.reset(new EventSimulation(settings.interval_s, settings.scrub_s, settings.test_mode,
 		            settings.debug, settings.continue_running, settings.output_bucket_s));
 	}
 	else
@@ -179,24 +178,24 @@ GroupDomain *genModuleDIMM()
 		{
 			if (settings.enable_transient)
 			{
-				dram0->setFIT(DRAM_1BIT,  transient, 14.2);
-				dram0->setFIT(DRAM_1WORD, transient,  1.4);
-				dram0->setFIT(DRAM_1COL,  transient,  1.4);
-				dram0->setFIT(DRAM_1ROW,  transient,  0.2);
-				dram0->setFIT(DRAM_1BANK, transient,  0.8);
-				dram0->setFIT(DRAM_NBANK, transient,  0.3);
-				dram0->setFIT(DRAM_NRANK, transient,  0.9);
+				dram0->setFIT(DRAM_1BIT,  transient, 14.2 * settings.fit_factor);
+				dram0->setFIT(DRAM_1WORD, transient,  1.4 * settings.fit_factor);
+				dram0->setFIT(DRAM_1COL,  transient,  1.4 * settings.fit_factor);
+				dram0->setFIT(DRAM_1ROW,  transient,  0.2 * settings.fit_factor);
+				dram0->setFIT(DRAM_1BANK, transient,  0.8 * settings.fit_factor);
+				dram0->setFIT(DRAM_NBANK, transient,  0.3 * settings.fit_factor);
+				dram0->setFIT(DRAM_NRANK, transient,  0.9 * settings.fit_factor);
 			}
 
 			if (settings.enable_permanent)
 			{
-				dram0->setFIT(DRAM_1BIT,  not transient, 18.6);
-				dram0->setFIT(DRAM_1WORD, not transient,  0.3);
-				dram0->setFIT(DRAM_1COL,  not transient,  5.6);
-				dram0->setFIT(DRAM_1ROW,  not transient,  8.2);
-				dram0->setFIT(DRAM_1BANK, not transient, 10.0);
-				dram0->setFIT(DRAM_NBANK, not transient,  1.4);
-				dram0->setFIT(DRAM_NRANK, not transient,  2.8);
+				dram0->setFIT(DRAM_1BIT,  not transient, 18.6 * settings.fit_factor);
+				dram0->setFIT(DRAM_1WORD, not transient,  0.3 * settings.fit_factor);
+				dram0->setFIT(DRAM_1COL,  not transient,  5.6 * settings.fit_factor);
+				dram0->setFIT(DRAM_1ROW,  not transient,  8.2 * settings.fit_factor);
+				dram0->setFIT(DRAM_1BANK, not transient, 10.0 * settings.fit_factor);
+				dram0->setFIT(DRAM_NBANK, not transient,  1.4 * settings.fit_factor);
+				dram0->setFIT(DRAM_NRANK, not transient,  2.8 * settings.fit_factor);
 			}
 		}
 		else

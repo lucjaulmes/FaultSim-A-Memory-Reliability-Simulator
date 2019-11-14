@@ -48,9 +48,9 @@ void GroupDomain_dimm::setFIT(fault_class_t faultClass, bool isTransient, double
 {
 }
 
-void GroupDomain_dimm::init(uint64_t interval, uint64_t max_s, double fit_factor)
+void GroupDomain_dimm::init(uint64_t interval, uint64_t max_s)
 {
-	FaultDomain::init(interval, max_s, fit_factor);
+	FaultDomain::init(interval, max_s);
 }
 
 void GroupDomain_dimm::generateRanges(int faultClass)

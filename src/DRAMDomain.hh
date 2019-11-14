@@ -36,7 +36,7 @@ public:
 				double weibull_shape_parameter = 1.);
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
-	void init(uint64_t interval, uint64_t sim_seconds, double fit_factor);
+	void init(uint64_t interval, uint64_t sim_seconds);
 	int update(uint test_mode_t);   // perform one iteration
 	std::pair<uint64_t, uint64_t> repair();
 	void scrub();

@@ -324,24 +324,24 @@ inline bool DRAMDomain::fault_in_interval(fault_class_t faultClass, bool transie
 	return gen() <= (transient ? error_probability[faultClass].transient : error_probability[faultClass].permanent);
 }
 
-void DRAMDomain::init(uint64_t interval, uint64_t sim_seconds, double fit_factor)
+void DRAMDomain::init(uint64_t interval, uint64_t sim_seconds)
 {
-	FaultDomain::init(interval, sim_seconds, fit_factor);
+	FaultDomain::init(interval, sim_seconds);
 	// one-time initialization scales FIT rates to interval scale
 
 	// For Event Driven sim, use expected values of MTBFs in seconds
 	for (int i = 0; i < DRAM_MAX; i++)
 	{
-		secs_per_fault[i].transient = 3600e9 / (FIT_rate[i].transient * fit_factor);
-		secs_per_fault[i].permanent = 3600e9 / (FIT_rate[i].permanent * fit_factor);
+		secs_per_fault[i].transient = 3600e9 / (FIT_rate[i].transient);
+		secs_per_fault[i].permanent = 3600e9 / (FIT_rate[i].permanent);
 	}
 
 	// For interval simulation, compute probability (using exponential model) of having a fault during any interval
 	double interval_factor = interval / 3600e9;
 	for (int i = 0; i < DRAM_MAX; i++)
 	{
-		error_probability[i].transient = 1.0 - exp(-FIT_rate[i].transient * fit_factor * interval_factor);
-		error_probability[i].permanent = 1.0 - exp(-FIT_rate[i].permanent * fit_factor * interval_factor);
+		error_probability[i].transient = 1.0 - exp(-FIT_rate[i].transient * interval_factor);
+		error_probability[i].permanent = 1.0 - exp(-FIT_rate[i].permanent * interval_factor);
 		assert(0 <= error_probability[i].transient && error_probability[i].transient <= 1);
 		assert(0 <= error_probability[i].permanent && error_probability[i].permanent <= 1);
 	}

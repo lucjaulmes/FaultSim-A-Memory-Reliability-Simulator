@@ -32,11 +32,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FaultDomain.hh"
 
 
-Simulation::Simulation(uint64_t interval_t, uint64_t scrub_interval_t, double fit_factor_t, uint test_mode_t,
+Simulation::Simulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test_mode_t,
     bool debug_mode_t, bool cont_running_t, uint64_t output_bucket_t) :
 	m_interval(interval_t)
 	, m_scrub_interval(scrub_interval_t)
-	, m_fit_factor(fit_factor_t)
 	, test_mode(test_mode_t)
 	, debug_mode(debug_mode_t)
 	, cont_running(cont_running_t)
@@ -67,7 +66,7 @@ void Simulation::addDomain(FaultDomain *domain)
 void Simulation::init(uint64_t max_s)
 {
 	for (FaultDomain *fd: m_domains)
-		fd->init(m_interval, max_s, m_fit_factor);
+		fd->init(m_interval, max_s);
 }
 
 void Simulation::reset()

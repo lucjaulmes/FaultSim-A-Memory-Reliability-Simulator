@@ -31,7 +31,7 @@ public:
 	GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t banks_t, uint64_t burst_length);
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
-	void init(uint64_t interval, uint64_t max_s, double fit_factor);
+	void init(uint64_t interval, uint64_t max_s);
 	int update(uint test_mode_t);    // perform one iteration
 protected:
 	void generateRanges(int faultClass);   // based on a fault, create all faulty address ranges
