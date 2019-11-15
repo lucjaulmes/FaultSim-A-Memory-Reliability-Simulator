@@ -30,6 +30,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GroupDomain_cube.hh"
 #include "DRAMDomain.hh"
 #include "ChipKillRepair.hh"
+#include "VeccRepair.hh"
 #include "ChipKillRepair_cube.hh"
 #include "BCHRepair_cube.hh"
 #include "CubeRAIDRepair.hh"
@@ -235,6 +236,12 @@ GroupDomain *genModuleDIMM()
 	{
 		BCHRepair *bch2 = new BCHRepair(std::string("6EC7ED"), 6, 7, 4);
 		dimm0->addRepair(bch2);
+	}
+	else if (settings.repairmode == 6)
+	{
+		VeccRepair *vecc1 = new VeccRepair(std::string("VECC1"), 1, 2, 3, 1, settings.vecc_protection);
+		vecc1->allow_software_tolerance(settings.due_tol);
+		dimm0->addRepair(vecc1);
 	}
 	else
 		assert(0);

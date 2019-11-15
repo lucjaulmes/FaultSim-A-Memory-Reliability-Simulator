@@ -19,8 +19,8 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef CHIPKILLREPAIR_HH_
-#define CHIPKILLREPAIR_HH_
+#ifndef VECCREPAIR_HH_
+#define VECCREPAIR_HH_
 
 #include <string>
 #include <map>
@@ -28,68 +28,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dram_common.hh"
 #include "RepairScheme.hh"
 #include "FaultRange.hh"
+#include "ChipKillRepair.hh"
 
-class FaultIntersection;
-
-class ChipKillRepair : public RepairScheme
+class VeccRepair : public ChipKillRepair
 {
 public:
-	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size = 3);
+	VeccRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size, int n_sym_extra, double protected_fraction);
 
 	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
-	uint64_t fill_repl(FaultDomain *fd);
-	void printStats();
-	void resetStats();
 
-	void allow_software_tolerance(std::vector<double> tolerating_probability);
+private:
+	const uint64_t m_n_additional;
+	const double m_protected_fraction;
 
-protected:
-	const uint64_t m_n_correct, m_n_detect, m_symbol_mask;
-	std::map<std::pair<size_t, size_t>, size_t> m_failure_sizes;
-
-	void remove_duplicate_failures(std::list<FaultIntersection> &failures);
-	std::list<FaultIntersection> compute_failure_intersections(FaultDomain *fd);
-	void software_tolerate_failures(std::list<FaultIntersection> &failures);
-
-	std::vector<double> m_duetol;
-	random_generator_t gen;
+	void vecc_tolerate(std::list<FaultIntersection> &failures, FaultDomain *fd);
 };
 
+#endif /* VECCREPAIR_HH_ */
 
-class FaultIntersection: public FaultRange
-{
-public:
-	std::vector<FaultRange*> intersecting;
-
-	// The intersection of 0 faults
-	FaultIntersection(DRAMDomain *pDRAM) :
-		FaultRange(pDRAM), intersecting()
-	{
-		fAddr = 0ULL;
-		fWildMask = ~0ULL;
-		transient = false;
-		transient_remove = false;
-	}
-
-	// Use FaultRange copy constructor to create the intersection of 1 fault
-	FaultIntersection(FaultRange *fault, uint64_t min_mask):
-		FaultRange(*fault), intersecting()
-	{
-		fAddr &= ~min_mask;
-		fWildMask |= min_mask;
-		intersecting.push_back(fault);
-	}
-
-	// Each FaultRange represents chip with intersecting errors
-	size_t offset = 0;
-	inline size_t chip_count()
-	{
-		return intersecting.size() - offset;
-	}
-
-	void intersection(const FaultIntersection &fr);
-
-	std::string toString();
-};
-
-#endif /* CHIPKILLREPAIR_HH_ */

@@ -121,6 +121,7 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 	settings.tsv_fit = pt.get<double>("Fault.tsv_fit");
 
 	settings.repairmode = pt.get<int>("ECC.repairmode");
+	settings.vecc_protection = pt.get<double>("ECC.vecc_protection");
 
 	// specify all the tolerance probabilities, in order, starting with 1WORD
 	// e.g. ".9 0 .1" means 90% tolerance of 1WORD DUEs, 0% of 1COL DUEs, and 10% of 1ROW DUEs
