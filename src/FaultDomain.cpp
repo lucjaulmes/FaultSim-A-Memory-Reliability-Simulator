@@ -45,6 +45,18 @@ FaultDomain::FaultDomain(const char *name_t)
 	children_counter = 0;
 }
 
+FaultDomain::~FaultDomain()
+{
+	for (FaultDomain *fd: m_children)
+		delete fd;
+
+	for (RepairScheme *rs: m_repairSchemes)
+		delete rs;
+
+	m_children.clear();
+	m_repairSchemes.clear();
+}
+
 std::string FaultDomain::getName()
 {
 	return m_name;

@@ -118,6 +118,12 @@ GroupDomain_cube::GroupDomain_cube(const char *name, uint cube_model_t, uint64_t
 	}
 }
 
+GroupDomain_cube::~GroupDomain_cube()
+{
+	delete[] tsv_bitmap;
+	delete[] tsv_info;
+}
+
 int GroupDomain_cube::update(uint test_mode_t)
 {
 	int newfault = 0;

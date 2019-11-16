@@ -39,7 +39,7 @@ public:
 	std::pair<uint64_t, uint64_t> repair_vc(FaultDomain *fd);
 	int64_t getbank_number(FaultRange fr_number);
 private:
-	uint64_t m_n_correct, m_n_detect;
+	const uint64_t m_n_correct, m_n_detect;
 	uint32_t logBits, logCols, logRows, banks;
 };
 

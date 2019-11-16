@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SIMULATION_HH_
 
 #include <string>
+#include <vector>
 
 #include "FaultDomain.hh"
 
@@ -31,6 +32,7 @@ class Simulation
 public:
 	Simulation(uint64_t interval_t, uint64_t scrub_interval_t, double fit_factor_t, uint test_mode_t, bool debug_mode_t,
 	    bool cont_running_t, uint64_t output_bucket_t);
+	~Simulation();
 	void init(uint64_t max_s);
 	void reset();
 	void finalize();
@@ -54,9 +56,9 @@ protected:
 
 	uint64_t stat_total_failures, stat_total_corrected, stat_total_sims, stat_sim_seconds;
 
-	uint64_t *fail_time_bins;
-	uint64_t *fail_uncorrectable;
-	uint64_t *fail_undetectable;
+	std::vector<uint64_t> fail_time_bins;
+	std::vector<uint64_t> fail_uncorrectable;
+	std::vector<uint64_t> fail_undetectable;
 
 	std::list<FaultDomain *> m_domains;
 };

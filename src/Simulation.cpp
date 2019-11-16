@@ -51,6 +51,13 @@ Simulation::Simulation(uint64_t interval_t, uint64_t scrub_interval_t, double fi
 	}
 }
 
+Simulation::~Simulation()
+{
+	for (FaultDomain *fd: m_domains)
+		delete fd;
+	m_domains.clear();
+}
+
 void Simulation::addDomain(FaultDomain *domain)
 {
 	domain->setDebug(debug_mode);
@@ -94,9 +101,9 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 	stat_sim_seconds = max_time;
 
 	// Number of bins that the output file will have
-	fail_time_bins = new uint64_t[max_time / bin_length];
-	fail_uncorrectable = new uint64_t[max_time / bin_length];
-	fail_undetectable = new uint64_t[max_time / bin_length];
+	fail_time_bins.resize(max_time / bin_length);
+	fail_uncorrectable.resize(max_time / bin_length);
+	fail_undetectable.resize(max_time / bin_length);
 
 	for (uint i = 0; i < max_time / bin_length; i++)
 	{

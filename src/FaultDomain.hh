@@ -37,6 +37,7 @@ class FaultDomain
 {
 public:
 	FaultDomain(const char *name);
+	virtual ~FaultDomain();
 
 	std::string getName();
 	uint64_t getFaultCountTrans();

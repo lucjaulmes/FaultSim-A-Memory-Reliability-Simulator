@@ -292,7 +292,10 @@ void DRAMDomain::scrub()
 	{
 		FaultRange *fr = *it;
 		if (fr->transient && fr->transient_remove)
+		{
 			it = m_faultRanges.erase(it);
+			delete fr;
+		}
 		else
 			it++;
 	}

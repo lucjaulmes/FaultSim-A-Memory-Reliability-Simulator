@@ -37,7 +37,7 @@ public:
 	void resetStats();
 
 private:
-	uint64_t m_n_correct, m_n_detect, m_symbol_mask;
+	const uint64_t m_n_correct, m_n_detect, m_symbol_mask;
 };
 
 

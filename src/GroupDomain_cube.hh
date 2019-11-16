@@ -30,6 +30,7 @@ class GroupDomain_cube : public GroupDomain
 public:
 	GroupDomain_cube(const char *name, uint cube_model_t, uint64_t chips_t, uint64_t banks_t, uint64_t burst_length,
 	    uint64_t cube_addr_dec_depth_t, uint64_t cube_ecc_tsv_t, uint64_t cube_redun_tsv_t, bool enable_tsv_t);
+	~GroupDomain_cube();
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
 	void init(uint64_t interval, uint64_t max_s, double fit_factor);

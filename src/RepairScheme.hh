@@ -31,6 +31,7 @@ class RepairScheme
 {
 public:
 	RepairScheme(std::string name);
+	virtual ~RepairScheme() {}
 	std::string getName();
 
 	virtual std::pair<uint64_t, uint64_t> repair(FaultDomain *fd) = 0;

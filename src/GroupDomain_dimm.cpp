@@ -32,8 +32,7 @@ GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t 
 {
 	chips = chips_t; //Total Chips in a DIMM
 	banks = banks_t; //Total Banks per Chip
-	burst_size =
-	    burst_size_t; //The burst length per access, this determines the number of TSVs or number of DATA pins coming out of a Chip in a DIMM
+	burst_size = burst_size_t; //The burst length per access, this determines the number of TSVs or number of DATA pins coming out of a Chip in a DIMM
 
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
