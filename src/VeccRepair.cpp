@@ -27,7 +27,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 VeccRepair::VeccRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size, int n_sym_added, double protected_fraction)
 	: ChipKillRepair(name, n_sym_correct, n_sym_detect, log_symbol_size)
-	, m_n_additional(n_sym_added), m_protected_fraction(protected_fraction)
+	, m_n_additional(n_sym_added), m_protected_fraction(protected_fraction), total_failures(0), tolerated_failures(0)
 {
 	assert(protected_fraction >= 0. && protected_fraction <= 1.);
 }
@@ -44,6 +44,9 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 		else if (fail.chip_count() > m_n_correct)
 			due.push_back(fail);
 	}
+
+	total_failures += failures.size();
+	tolerated_failures += (failures.size() - sdc.size() - due.size());
 
 	remove_duplicate_failures(sdc);
 	remove_duplicate_failures(due);

@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define VECCREPAIR_HH_
 
 #include <string>
+#include <iostream>
 #include <map>
 
 #include "dram_common.hh"
@@ -37,9 +38,21 @@ public:
 
 	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
 
+	void printStats() {
+		std::cout << tolerated_failures << " / " << total_failures << " = " << ((100. * tolerated_failures) / total_failures)
+			<< "% of failures were tolerated, targeting " << (100. * m_protected_fraction) << "%\n";
+		ChipKillRepair::printStats();
+	}
+	void resetStats() {
+		total_failures = tolerated_failures = 0;
+		ChipKillRepair::resetStats();
+	};
+
 private:
 	const uint64_t m_n_additional;
 	const double m_protected_fraction;
+
+	size_t total_failures, tolerated_failures;
 
 	void vecc_tolerate(std::list<FaultIntersection> &failures, FaultDomain *fd);
 };

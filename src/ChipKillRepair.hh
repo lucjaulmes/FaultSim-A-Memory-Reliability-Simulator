@@ -38,8 +38,8 @@ public:
 
 	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
 	uint64_t fill_repl(FaultDomain *fd);
-	void printStats();
-	void resetStats();
+	virtual void printStats();
+	virtual void resetStats();
 
 	void allow_software_tolerance(std::vector<double> tolerating_probability);
 
