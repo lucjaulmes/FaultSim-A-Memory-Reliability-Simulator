@@ -32,6 +32,13 @@ VeccRepair::VeccRepair(std::string name, int n_sym_correct, int n_sym_detect, in
 	assert(protected_fraction >= 0. && protected_fraction <= 1.);
 }
 
+void VeccRepair::allow_software_tolerance(std::vector<double> tolerating_probability, std::vector<double> unprotected_tolerating_probability)
+{
+	assert(tolerating_probability.size() == DRAM_MAX && unprotected_tolerating_probability.size() == DRAM_MAX);
+	m_swtol = tolerating_probability;
+	m_unprotected_swtol = unprotected_tolerating_probability;
+}
+
 std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 {
 	std::list<FaultIntersection> sdc, due, failures = compute_failure_intersections(fd);
@@ -63,6 +70,20 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 			fr->transient_remove = false;
 
 	return std::make_pair(sdc.size(), due.size());
+}
+
+void VeccRepair::software_tolerate_failures(std::list<FaultIntersection> &failures)
+{
+	for (auto it = failures.begin(); it != failures.end();)
+		// if (!it->transient); else
+		if (it->intersecting.size() <= m_n_correct + m_n_additional
+				// memory region intentionally not protected by VECC, different software tolerance
+				&& gen() < m_unprotected_swtol.at(it->m_pDRAM->maskClass(it->fWildMask)))
+			it = failures.erase(it);
+		else if (gen() < m_swtol.at(it->m_pDRAM->maskClass(it->fWildMask)))
+			it = failures.erase(it);
+		else
+			++it;
 }
 
 void VeccRepair::vecc_tolerate(std::list<FaultIntersection> &failures, FaultDomain *fd)
@@ -112,11 +133,15 @@ void VeccRepair::vecc_tolerate(std::list<FaultIntersection> &failures, FaultDoma
 				redundant_location->fAddr	  &= ~protecting_chunk_mask;
 				redundant_location->fWildMask |= protecting_chunk_mask;
 
+				// TODO bool too simple if m_n_additional > 1
 				bool redundant_location_ok = true;
 				for (auto chip: pChips)
 				{
 					std::list<FaultRange *> list = dynamic_cast<DRAMDomain*>(chip)->getRanges();
-					auto intersection = std::find_if(list.begin(), list.end(), [&] (FaultRange *fault) { return fault->intersects(redundant_location); });
+					auto intersection = std::find_if(list.begin(), list.end(), [&] (FaultRange *fault)
+						{
+							return fault->intersects(redundant_location);
+						});
 
 					if (intersection != list.end())
 					{
@@ -132,6 +157,7 @@ void VeccRepair::vecc_tolerate(std::list<FaultIntersection> &failures, FaultDoma
 			all_rows_protected = all_rows_protected && it->second;
 		}
 
+		// TODO bool too simple if m_n_additional > 1, because we might offset by N < m_n_additional symbols
 		if (all_rows_protected)
 			fail->offset += m_n_additional;
 	}

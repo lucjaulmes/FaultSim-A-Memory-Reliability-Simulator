@@ -48,14 +48,19 @@ public:
 		ChipKillRepair::resetStats();
 	};
 
+	void allow_software_tolerance(std::vector<double> tolerating_probability, std::vector<double> unprotected_tolerating_probability);
+
 private:
 	const uint64_t m_n_additional;
 	const double m_protected_fraction;
+	std::vector<double> m_unprotected_swtol;
 
 	size_t total_failures, tolerated_failures;
 
 	void vecc_tolerate(std::list<FaultIntersection> &failures, FaultDomain *fd);
+	void software_tolerate_failures(std::list<FaultIntersection> &failures);
 };
+
 
 #endif /* VECCREPAIR_HH_ */
 

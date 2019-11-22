@@ -240,7 +240,7 @@ GroupDomain *genModuleDIMM()
 	else if (settings.repairmode == 6)
 	{
 		VeccRepair *vecc1 = new VeccRepair(std::string("VECC1"), 1, 2, 3, 1, settings.vecc_protection);
-		vecc1->allow_software_tolerance(settings.sw_tol);
+		vecc1->allow_software_tolerance(settings.sw_tol, settings.vecc_sw_tol);
 		dimm0->addRepair(vecc1);
 	}
 	else

@@ -41,7 +41,7 @@ public:
 	virtual void printStats();
 	virtual void resetStats();
 
-	void allow_software_tolerance(std::vector<double> tolerating_probability);
+	virtual void allow_software_tolerance(std::vector<double> tolerating_probability);
 
 protected:
 	const uint64_t m_n_correct, m_n_detect, m_symbol_mask;
@@ -49,7 +49,7 @@ protected:
 
 	void remove_duplicate_failures(std::list<FaultIntersection> &failures);
 	std::list<FaultIntersection> compute_failure_intersections(FaultDomain *fd);
-	void software_tolerate_failures(std::list<FaultIntersection> &failures);
+	virtual void software_tolerate_failures(std::list<FaultIntersection> &failures);
 
 	std::vector<double> m_swtol;
 	random_generator_t gen;

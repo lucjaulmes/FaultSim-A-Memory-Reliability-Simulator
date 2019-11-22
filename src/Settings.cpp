@@ -127,8 +127,14 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 	// e.g. ".9 0 .1" means 90% tolerance of 1WORD DUEs, 0% of 1COL DUEs, and 10% of 1ROW DUEs
 	settings.sw_tol = pt.get<std::vector<double>>("ECC.sw_tol");
 	settings.sw_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
+
+	// Same as above, but for the VECC–unprotected regions
+	settings.vecc_sw_tol = pt.get<std::vector<double>>("ECC.vecc_sw_tol", settings.sw_tol);
+	settings.vecc_sw_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
+
 	// set 1BIT = 1WORD
 	settings.sw_tol.insert(settings.sw_tol.begin(), settings.sw_tol.front());
+	settings.vecc_sw_tol.insert(settings.vecc_sw_tol.begin(), settings.vecc_sw_tol.front());
 
 	return 0;
 }

@@ -65,6 +65,7 @@ struct Settings
 	int repairmode;     // Type of ECC to apply
 	std::vector<double> sw_tol;     // Fraction of failures that the software can tolerate
 	double vecc_protection;
+	std::vector<double> vecc_sw_tol;     // Fraction software-tolerated failures in VECC-unprotected memory
 };
 
 extern struct Settings settings;
