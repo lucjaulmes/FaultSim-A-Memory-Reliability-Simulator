@@ -46,9 +46,9 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 
 	for (auto fail: failures)
 	{
-		if (fail.chip_count() > m_n_detect)
+		if (fail.chip_count() - fail.offset > m_n_detect)
 			sdc.push_back(fail);
-		else if (fail.chip_count() > m_n_correct)
+		else if (fail.chip_count() - fail.offset > m_n_correct)
 			due.push_back(fail);
 	}
 

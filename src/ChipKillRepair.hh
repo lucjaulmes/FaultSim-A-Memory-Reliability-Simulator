@@ -84,7 +84,7 @@ public:
 	size_t offset = 0;
 	inline size_t chip_count()
 	{
-		return intersecting.size() - offset;
+		return intersecting.size();
 	}
 
 	void intersection(const FaultIntersection &fr);
