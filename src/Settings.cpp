@@ -125,10 +125,10 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 
 	// specify all the tolerance probabilities, in order, starting with 1WORD
 	// e.g. ".9 0 .1" means 90% tolerance of 1WORD DUEs, 0% of 1COL DUEs, and 10% of 1ROW DUEs
-	settings.due_tol = pt.get<std::vector<double>>("ECC.due_tol", {0.});
-	settings.due_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
+	settings.sw_tol = pt.get<std::vector<double>>("ECC.sw_tol");
+	settings.sw_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
 	// set 1BIT = 1WORD
-	settings.due_tol.insert(settings.due_tol.begin(), settings.due_tol.front());
+	settings.sw_tol.insert(settings.sw_tol.begin(), settings.sw_tol.front());
 
 	return 0;
 }

@@ -33,14 +33,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size)
 	: RepairScheme(name), m_n_correct(n_sym_correct), m_n_detect(n_sym_detect), m_symbol_mask((1ULL << log_symbol_size) - 1)
 	, m_failure_sizes()
-	, m_duetol(DRAM_MAX, 0.), gen(random64_engine_t(), random_uniform_t(0, 1))
+	, m_swtol(DRAM_MAX, 0.), gen(random64_engine_t(), random_uniform_t(0, 1))
 {
 }
 
 void ChipKillRepair::allow_software_tolerance(std::vector<double> tolerating_probability)
 {
 	assert(tolerating_probability.size() == DRAM_MAX);
-	m_duetol = tolerating_probability;
+	m_swtol = tolerating_probability;
 }
 
 std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
@@ -153,7 +153,8 @@ std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(Fault
 void ChipKillRepair::software_tolerate_failures(std::list<FaultIntersection> &failures)
 {
 	for (auto it = failures.begin(); it != failures.end();)
-		if (/*it->transient && */ gen() < m_duetol.at(it->m_pDRAM->maskClass(it->fWildMask)))
+		// if (!it->transient) ++it; else
+		if (gen() < m_swtol.at(it->m_pDRAM->maskClass(it->fWildMask)))
 			it = failures.erase(it);
 		else
 			++it;

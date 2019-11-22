@@ -63,7 +63,7 @@ struct Settings
 
 	// ECC configuration
 	int repairmode;     // Type of ECC to apply
-	std::vector<double> due_tol;     // Fraction of DUEs that can be tolerated
+	std::vector<double> sw_tol;     // Fraction of failures that the software can tolerate
 	double vecc_protection;
 };
 

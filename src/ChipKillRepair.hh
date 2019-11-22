@@ -51,7 +51,7 @@ protected:
 	std::list<FaultIntersection> compute_failure_intersections(FaultDomain *fd);
 	void software_tolerate_failures(std::list<FaultIntersection> &failures);
 
-	std::vector<double> m_duetol;
+	std::vector<double> m_swtol;
 	random_generator_t gen;
 };
 
