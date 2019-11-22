@@ -50,6 +50,8 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 			sdc.push_back(fail);
 		else if (fail.chip_count() - fail.offset > m_n_correct)
 			due.push_back(fail);
+		else
+			m_failure_sizes[std::make_tuple(fail.m_pDRAM->maskClass(fail.fWildMask), fail.chip_count(), VECC_PROTECTED)]++;
 	}
 
 	total_failures += failures.size();
@@ -62,12 +64,22 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 	software_tolerate_failures(due);
 
 	for (auto fail: due)
+	{
+		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
+		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNCORRECTED)]++;
+
 		for (FaultRange *fr: fail.intersecting)
 			fr->transient_remove = false;
+	}
 
 	for (auto fail: sdc)
+	{
+		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
+		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNDETECTED)]++;
+
 		for (FaultRange *fr: fail.intersecting)
 			fr->transient_remove = false;
+	}
 
 	return std::make_pair(sdc.size(), due.size());
 }
@@ -75,15 +87,24 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 void VeccRepair::software_tolerate_failures(std::list<FaultIntersection> &failures)
 {
 	for (auto it = failures.begin(); it != failures.end();)
+	{
+		fault_class_t cls = it->m_pDRAM->maskClass(it->fWildMask);
 		// if (!it->transient); else
-		if (it->intersecting.size() <= m_n_correct + m_n_additional
+		if (it->chip_count() <= m_n_correct + m_n_additional
 				// memory region intentionally not protected by VECC, different software tolerance
-				&& gen() < m_unprotected_swtol.at(it->m_pDRAM->maskClass(it->fWildMask)))
+				&& gen() < m_unprotected_swtol.at(cls))
+		{
+			m_failure_sizes[std::make_tuple(cls, it->chip_count(), SW_UNPROT_TOLERATED)]++;
 			it = failures.erase(it);
+		}
 		else if (gen() < m_swtol.at(it->m_pDRAM->maskClass(it->fWildMask)))
+		{
+			m_failure_sizes[std::make_tuple(cls, it->chip_count(), SW_TOLERATED)]++;
 			it = failures.erase(it);
+		}
 		else
 			++it;
+	}
 }
 
 void VeccRepair::vecc_tolerate(std::list<FaultIntersection> &failures, FaultDomain *fd)

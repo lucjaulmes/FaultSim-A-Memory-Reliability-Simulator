@@ -51,6 +51,9 @@ public:
 	void allow_software_tolerance(std::vector<double> tolerating_probability, std::vector<double> unprotected_tolerating_probability);
 
 private:
+	static const int VECC_PROTECTED      = 5;
+	static const int SW_UNPROT_TOLERATED = 6;
+
 	const uint64_t m_n_additional;
 	const double m_protected_fraction;
 	std::vector<double> m_unprotected_swtol;

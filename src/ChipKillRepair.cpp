@@ -61,12 +61,22 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 	software_tolerate_failures(due);
 
 	for (auto fail: due)
+	{
+		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
+		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNCORRECTED)]++;
+
 		for (FaultRange *fr: fail.intersecting)
 			fr->transient_remove = false;
+	}
 
 	for (auto fail: sdc)
+	{
+		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
+		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNDETECTED)]++;
+
 		for (FaultRange *fr: fail.intersecting)
 			fr->transient_remove = false;
+	}
 
 	return std::make_pair(sdc.size(), due.size());
 }
@@ -137,11 +147,10 @@ std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(Fault
 		// NB: for double chipkill we might mark a triple error and a double error containing this triple error
 		if (intersection.chip_count() > m_n_correct)
 			failures.push_back(intersection);
-
-		if (intersection.chip_count() > 0)
+		else
 		{
 			fault_class_t cls = intersection.m_pDRAM->maskClass(intersection.fWildMask);
-			m_failure_sizes[std::make_pair(cls, intersection.chip_count())]++;
+			m_failure_sizes[std::make_tuple(cls, intersection.chip_count(), CORRECTED)]++;
 		}
 
 		error_intersection.pop();
@@ -153,11 +162,17 @@ std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(Fault
 void ChipKillRepair::software_tolerate_failures(std::list<FaultIntersection> &failures)
 {
 	for (auto it = failures.begin(); it != failures.end();)
+	{
+		fault_class_t cls = it->m_pDRAM->maskClass(it->fWildMask);
 		// if (!it->transient) ++it; else
-		if (gen() < m_swtol.at(it->m_pDRAM->maskClass(it->fWildMask)))
+		if (gen() < m_swtol.at(cls))
+		{
+			m_failure_sizes[std::make_tuple(cls, it->chip_count(), SW_TOLERATED)]++;
 			it = failures.erase(it);
+		}
 		else
 			++it;
+	}
 }
 
 void ChipKillRepair::remove_duplicate_failures(std::list<FaultIntersection> &failures)
@@ -216,17 +231,14 @@ uint64_t ChipKillRepair::fill_repl(FaultDomain *fd)
 
 void ChipKillRepair::printStats()
 {
-	std::cout << "Failure sizes\nsize";
-	for (size_t nsym = 1; nsym <= m_n_detect + 1; nsym++)
-		std::cout << ':' << nsym << "_sym";
-	std::cout << '\n';
+	std::cout << "Failure sizes\nsize:symbols:outcome:count\n";
 
-	for (int cls = DRAM_1WORD; cls < DRAM_MAX; cls++)
+	size_t fault_class, n_symbols, outcome;
+	for (auto &stat: m_failure_sizes)
 	{
-		std::cout << DRAMDomain::faultClassString(fault_class_t(cls));
-		for (size_t nsym = 1; nsym <= m_n_detect + 1; nsym++)
-			std::cout << ':' << m_failure_sizes[std::make_pair(cls, nsym)];
-		std::cout << '\n';
+		std::tie(fault_class, n_symbols, outcome) = stat.first;
+		std::cout << DRAMDomain::faultClassString(fault_class_t(fault_class))
+				  << ':' << n_symbols << ':' << outcome << ':' << stat.second << '\n';
 	}
 	std::cout << std::endl;
 

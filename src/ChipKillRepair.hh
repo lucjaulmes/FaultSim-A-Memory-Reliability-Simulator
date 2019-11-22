@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHIPKILLREPAIR_HH_
 
 #include <string>
+#include <tuple>
 #include <map>
 
 #include "dram_common.hh"
@@ -44,8 +45,13 @@ public:
 	virtual void allow_software_tolerance(std::vector<double> tolerating_probability);
 
 protected:
+	static const int CORRECTED    = 1;
+	static const int UNCORRECTED  = 2;
+	static const int UNDETECTED   = 3;
+	static const int SW_TOLERATED = 4;
+
 	const uint64_t m_n_correct, m_n_detect, m_symbol_mask;
-	std::map<std::pair<size_t, size_t>, size_t> m_failure_sizes;
+	std::map<std::tuple<size_t, size_t, int>, size_t> m_failure_sizes;
 
 	void remove_duplicate_failures(std::list<FaultIntersection> &failures);
 	std::list<FaultIntersection> compute_failure_intersections(FaultDomain *fd);
