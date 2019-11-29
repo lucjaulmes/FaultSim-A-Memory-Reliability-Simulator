@@ -113,19 +113,16 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 		uint64_t failures = runOne(max_time, verbose, bin_length);
 		stat_total_sims++;
 
-		uint64_t trans = 0, perm = 0;
+		faults_t fault_count = {0, 0};
 		for (GroupDomain *fd: m_domains)
-		{
-			perm += fd->getFaultCountPerm();
-			trans += fd->getFaultCountTrans();
-		}
+			fault_count += fd->getFaultCount();
 
 		if (failures != 0)
 		{
 			stat_total_failures++;
 			if (verbose) std::cout << "F";   // uncorrected
 		}
-		else if (trans + perm != 0)
+		else if (fault_count.total() != 0)
 		{
 			stat_total_corrected++;
 			if (verbose) std::cout << "C";    // corrected
@@ -260,9 +257,7 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 
 
 		// Run the repair function: This will check the correctability / detectability of the fault(s)
-		uint64_t n_undetected = 0;
-		uint64_t n_uncorrected = 0;
-		std::tie(n_undetected, n_uncorrected) = m_domains.front()->repair();
+		failures_t failure_count = m_domains.front()->repair();
 
 		if (verbose == 2)
 		{
@@ -271,14 +266,14 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 		}
 
 
-		if (n_undetected || n_uncorrected)
+		if (failure_count.undetected || failure_count.uncorrected)
 		{
 			uint64_t bin = timestamp / bin_length;
 			fail_time_bins[bin]++;
 
-			if (n_uncorrected > 0)
+			if (failure_count.uncorrected > 0)
 				fail_uncorrectable[bin]++;
-			if (n_undetected > 0)
+			if (failure_count.undetected > 0)
 				fail_undetectable[bin]++;
 
 			errors++;

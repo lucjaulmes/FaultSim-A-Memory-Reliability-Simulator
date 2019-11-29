@@ -26,7 +26,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 GroupDomain::GroupDomain(const char *name) : FaultDomain(name)
 {
 	// RAW faults in this domain before detection/correction
-	n_faults_transient = n_faults_permanent = 0;
+	n_faults.transient = n_faults.permanent = 0;
 	// Errors after detection/correction
 	n_errors_undetected = n_errors_uncorrected = 0;
 }
@@ -46,7 +46,7 @@ GroupDomain::~GroupDomain()
 void GroupDomain::reset()
 {
 	// reset per-simulation statistics used internally
-	n_faults_transient = n_faults_permanent = 0;
+	n_faults.transient = n_faults.permanent = 0;
 	// used to indicate whether the domain failed during a single simulation
 	n_errors_undetected = n_errors_uncorrected = 0;
 
@@ -59,24 +59,14 @@ void GroupDomain::reset()
 		fd->reset();
 }
 
-uint64_t GroupDomain::getFaultCountTrans()
+faults_t GroupDomain::getFaultCount()
 {
-	n_faults_transient = 0;
+	n_faults = {0, 0};
 
 	for (FaultDomain *fd: m_children)
-		n_faults_transient += fd->getFaultCountTrans();
+		n_faults += fd->getFaultCount();
 
-	return n_faults_transient;
-}
-
-uint64_t GroupDomain::getFaultCountPerm()
-{
-	n_faults_permanent = 0;
-
-	for (FaultDomain *fd: m_children)
-		n_faults_permanent += fd->getFaultCountPerm();
-
-	return n_faults_permanent;
+	return n_faults;
 }
 
 void GroupDomain::dumpState()
@@ -87,21 +77,19 @@ void GroupDomain::dumpState()
 }
 
 
-std::pair<uint64_t, uint64_t> GroupDomain::repair()
+failures_t GroupDomain::repair()
 {
-	uint64_t faults_before_repair = getFaultCountPerm() + getFaultCountTrans();
-	uint64_t n_undetectable = 0, n_uncorrectable = 0;
+	uint64_t faults_before_repair = getFaultCount().total();
+	failures_t fail = {0, 0};
 
 	// Have each child domain repair itself (e.g. on-chip ECC).
 	for (auto *fd: m_children)
 	{
-		uint64_t child_raw = fd->getFaultCountTrans() + fd->getFaultCountPerm();
+		uint64_t child_raw = fd->getFaultCount().total();
+		failures_t child_fail = fd->repair();
 
-		uint64_t child_undetect, child_uncorrect;
-		std::tie(child_undetect, child_uncorrect) = fd->repair();
-
-		n_undetectable += std::min(child_undetect, child_raw);
-		n_uncorrectable += std::min(child_uncorrect, child_raw);
+		fail.undetected += std::min(child_fail.undetected, child_raw);
+		fail.uncorrected += std::min(child_fail.uncorrected, child_raw);
 	}
 
 	// Apply group-level ECC, iteratively reduce number of faults with each successive repair scheme.
@@ -109,14 +97,12 @@ std::pair<uint64_t, uint64_t> GroupDomain::repair()
 	{
 		// TODO: would be nice to share information between repair schemes,
 		// so that a scheme can act on the outputs/results of the previous one(s)
-		uint64_t uncorrectable_after_repair = 0;
-		uint64_t undetectable_after_repair = 0;
-		std::tie(undetectable_after_repair, uncorrectable_after_repair) = rs->repair(this);
+		failures_t after_repair = rs->repair(this);
 
-		if (n_uncorrectable > uncorrectable_after_repair)
-			n_uncorrectable = uncorrectable_after_repair;
-		if (n_undetectable > undetectable_after_repair)
-			n_undetectable = undetectable_after_repair;
+		if (fail.uncorrected > after_repair.uncorrected)
+			fail.uncorrected = after_repair.uncorrected;
+		if (fail.undetected > after_repair.undetected)
+			fail.undetected = after_repair.undetected;
 
 		// if any repair happened, dump
 		if (debug)
@@ -125,31 +111,19 @@ std::pair<uint64_t, uint64_t> GroupDomain::repair()
 			{
 				std::cout << ">>> REPAIR " << m_name << " USING " << rs->getName() << " (state dump)\n";
 				dumpState();
-				std::cout << "FAULTS_BEFORE: " << faults_before_repair << " FAULTS_AFTER: " << n_uncorrectable << "\n";
+				std::cout << "FAULTS_BEFORE: " << faults_before_repair << " FAULTS_AFTER: " << fail.uncorrected << "\n";
 				std::cout << "<<< END\n";
 			}
 		}
 	}
 
-	if (n_undetectable > 0)
+	if (fail.undetected > 0)
 		n_errors_undetected++;
 
-	if (n_uncorrectable > 0)
+	if (fail.uncorrected > 0)
 		n_errors_uncorrected++;
 
-	return std::make_pair(n_undetectable, n_uncorrectable);
-}
-
-void GroupDomain::scrub()
-{
-	// repair all children
-	for (FaultDomain *fd: m_children)
-		fd->scrub();
-}
-
-uint64_t GroupDomain::getFailedSimCount()
-{
-	return stat_n_failures;
+	return fail;
 }
 
 
@@ -157,14 +131,13 @@ void GroupDomain::finalize()
 {
 	// walk through all children and observe their error counts
 	// If 1 or more children had a fault, record a failed simulation
-	// at this level of the hierarchy.
 
 	// RAW error rates
-	bool failure = (getFaultCountPerm() + getFaultCountTrans()) != 0;
+	bool failure = getFaultCount().total() != 0;
 
 	if (!failure)
 		for (FaultDomain *fd: m_children)
-			if (fd->getFaultCountPerm() + fd->getFaultCountTrans() != 0)
+			if (fd->getFaultCount().total() != 0)
 			{
 				failure = true;
 				break;
@@ -180,6 +153,7 @@ void GroupDomain::finalize()
 	if (getFaultCountUncorrected() != 0)
 		stat_n_failures_uncorrected++;
 }
+
 
 void GroupDomain::printStats(uint64_t sim_seconds)
 {

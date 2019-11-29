@@ -39,7 +39,7 @@ void VeccRepair::allow_software_tolerance(std::vector<double> tolerating_probabi
 	m_unprotected_swtol = unprotected_tolerating_probability;
 }
 
-std::pair<uint64_t, uint64_t> VeccRepair::repair(GroupDomain *fd)
+failures_t VeccRepair::repair(GroupDomain *fd)
 {
 	std::list<FaultIntersection> sdc, due, failures = compute_failure_intersections(fd);
 	vecc_tolerate(failures, fd);
@@ -79,7 +79,7 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(GroupDomain *fd)
 		fail.uncorrectable();
 	}
 
-	return std::make_pair(sdc.size(), due.size());
+	return {sdc.size(), due.size()};
 }
 
 void VeccRepair::software_tolerate_failures(std::list<FaultIntersection> &failures)

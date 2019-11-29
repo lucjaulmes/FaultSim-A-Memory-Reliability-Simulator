@@ -36,7 +36,7 @@ class VeccRepair : public ChipKillRepair
 public:
 	VeccRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size, int n_sym_extra, double protected_fraction);
 
-	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	failures_t repair(GroupDomain *fd);
 
 	void printStats() {
 		std::cout << tolerated_failures << " / " << total_failures << " = " << ((100. * tolerated_failures) / total_failures)

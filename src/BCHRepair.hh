@@ -33,7 +33,7 @@ public:
 	// need to know how wide the devices are to determine which bits fall into one codeword across all the chips
 	BCHRepair(std::string name, int n_correct, int n_detect, uint64_t deviceBitWidth);
 
-	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	failures_t repair(GroupDomain *fd);
 	virtual void reset() {};
 
 private:

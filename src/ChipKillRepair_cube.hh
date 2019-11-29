@@ -35,12 +35,12 @@ class ChipKillRepair_cube : public RepairScheme
 public:
 	ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect, GroupDomain_cube *fd);
 
-	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	failures_t repair(GroupDomain *fd);
 	void reset() {};
 
 private:
-	std::pair<uint64_t, uint64_t> repair_horizontalTSV(GroupDomain *fd);
-	std::pair<uint64_t, uint64_t> repair_verticalTSV(GroupDomain *fd);
+	failures_t repair_horizontalTSV(GroupDomain *fd);
+	failures_t repair_verticalTSV(GroupDomain *fd);
 
 	inline int64_t getbank_number(FaultRange &fr)
 	{

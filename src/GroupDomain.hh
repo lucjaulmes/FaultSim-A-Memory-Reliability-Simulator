@@ -22,6 +22,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GROUPDOMAIN_HH_
 #define GROUPDOMAIN_HH_
 
+#include <list>
+#include <functional>
+
 #include "FaultDomain.hh"
 #include "RepairScheme.hh"
 
@@ -44,19 +47,23 @@ public:
 
 	virtual void setFIT_TSV(bool transient, double FIT) = 0;
 
-    std::pair<uint64_t, uint64_t> repair();
-    void scrub();
+    failures_t repair();
     void finalize();
-
 	void reset();
+
 	void dumpState();
     void printStats(uint64_t max_time);
-    uint64_t getFailedSimCount();
 
-	uint64_t getFaultCountTrans();
-	uint64_t getFaultCountPerm();
-	inline virtual uint64_t getFaultCountUncorrected() { return n_errors_uncorrected; };
-	inline virtual uint64_t getFaultCountUndetected() { return n_errors_undetected; };
+	/** Return faults that intersect across children */
+	std::list<FaultIntersection>
+		intersecting_ranges(unsigned symbol_size, std::function<bool(FaultIntersection&)> predicate);
+
+    inline void scrub()
+	{
+		// repair all children
+		for (FaultDomain *fd: m_children)
+			fd->scrub();
+	}
 
 	inline
 	void addDomain(FaultDomain *domain)
@@ -75,6 +82,16 @@ public:
 	{
 		return m_children;
 	}
+
+	inline
+	uint64_t getFailedSimCount()
+	{
+		return stat_n_failures;
+	}
+
+	faults_t getFaultCount();
+	inline uint64_t getFaultCountUncorrected() { return n_errors_uncorrected; };
+	inline uint64_t getFaultCountUndetected() { return n_errors_undetected; };
 };
 
 

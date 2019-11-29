@@ -37,7 +37,7 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 	banks = 1 << DRAMchip->getLogBanks();
 }
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(GroupDomain *fd)
+failures_t ChipKillRepair_cube::repair(GroupDomain *fd)
 {
 	// Choose the algorithm based on the whether its modelled as vertical channels or horizontal channels
 
@@ -48,9 +48,9 @@ std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(GroupDomain *fd)
 }
 
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_horizontalTSV(GroupDomain *fd)
+failures_t ChipKillRepair_cube::repair_horizontalTSV(GroupDomain *fd)
 {
-	uint64_t n_undetectable = 0, n_uncorrectable = 0;
+	failures_t fail = {0, 0};
 	std::list<FaultDomain *> &pChips = fd->getChildren();
 	//Initialize the counters to count chips
 	uint64_t counter1 = 0;
@@ -207,16 +207,15 @@ std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_horizontalTSV(GroupDom
 				}
 			}
 			if (n_intersections > m_n_correct)
-				n_uncorrectable += n_intersections - m_n_correct;
+				fail.uncorrected += n_intersections - m_n_correct;
 			if (n_intersections > m_n_detect)
-				n_undetectable += n_intersections - m_n_detect;
+				fail.undetected += n_intersections - m_n_detect;
 		}
 	}
-	return std::make_pair(n_undetectable, n_uncorrectable);
+	return fail;
 }
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_verticalTSV(GroupDomain *fd)
+failures_t ChipKillRepair_cube::repair_verticalTSV(GroupDomain *fd)
 {
-	uint64_t n_undetectable = 0, n_uncorrectable = 0;
-	return std::make_pair(n_undetectable, n_uncorrectable);
+	return {0, 0};
 }

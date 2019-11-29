@@ -31,6 +31,39 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dram_common.hh"
 
 
+typedef struct faults_t
+{
+	uint64_t transient, permanent;
+
+	inline
+	uint64_t total()
+	{
+		return transient + permanent;
+	}
+
+	inline
+	struct faults_t& operator+=(const struct faults_t &other)
+	{
+		transient += other.transient, permanent += other.permanent;
+		return *this;
+	}
+} faults_t;
+
+
+typedef struct failures_t
+{
+	uint64_t undetected, uncorrected;
+
+	inline
+	struct failures_t& operator+=(const struct failures_t &other)
+	{
+		undetected += other.undetected, uncorrected += other.uncorrected;
+		return *this;
+	}
+} failures_t;
+
+
+
 class FaultDomain
 {
 protected:
@@ -38,16 +71,15 @@ protected:
 	bool debug;
 
 	// per-simulation run statistics
-	uint64_t n_faults_transient;
-	uint64_t n_faults_permanent;
+	faults_t n_faults;
 
 	inline
 	void countFault(bool transient)
 	{
 		if (transient)
-			n_faults_transient++;
+			n_faults.transient++;
 		else
-			n_faults_permanent++;
+			n_faults.permanent++;
 	}
 
 public:
@@ -72,25 +104,17 @@ public:
 		debug = dbg;
 	}
 
-
 	inline
-	virtual uint64_t getFaultCountTrans()
+	virtual faults_t getFaultCount()
 	{
-		return n_faults_transient;
+		return n_faults;
 	};
 
 	inline
-	virtual uint64_t getFaultCountPerm()
-	{
-		return n_faults_permanent;
-	};
-
-	inline
-	virtual std::pair<uint64_t, uint64_t> repair()
+	virtual failures_t repair()
 	{
 		// In the absence of repair schemes, all faults are undetected and uncorrected
-		uint64_t all_faults = n_faults_transient + n_faults_permanent;
-		return std::make_pair(all_faults, all_faults);
+		return {n_faults.total(), n_faults.total()};
 	}
 
 	virtual void scrub() = 0;

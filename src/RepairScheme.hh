@@ -48,7 +48,7 @@ public:
 		return m_name;
 	}
 
-	virtual std::pair<uint64_t, uint64_t> repair(GroupDomain *fd) = 0;
+	virtual failures_t repair(GroupDomain *fd) = 0;
 	virtual void reset() = 0;
 
 	virtual void printStats() {}

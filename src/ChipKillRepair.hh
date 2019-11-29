@@ -36,7 +36,7 @@ class ChipKillRepair : public RepairScheme
 public:
 	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size = 3);
 
-	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	failures_t repair(GroupDomain *fd);
 	virtual void reset() {};
 
 	virtual void printStats();

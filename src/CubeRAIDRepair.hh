@@ -32,7 +32,7 @@ class CubeRAIDRepair : public RepairScheme
 public:
 	CubeRAIDRepair(std::string name, unsigned n_sym_correct, unsigned n_sym_detect, unsigned detect_block_bytes);
 
-	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	failures_t repair(GroupDomain *fd);
 	void reset() {}
 
 private:

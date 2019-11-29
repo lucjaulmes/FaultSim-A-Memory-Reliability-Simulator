@@ -43,7 +43,7 @@ void ChipKillRepair::allow_software_tolerance(std::vector<double> tolerating_pro
 	m_swtol = tolerating_probability;
 }
 
-std::pair<uint64_t, uint64_t> ChipKillRepair::repair(GroupDomain *fd)
+failures_t ChipKillRepair::repair(GroupDomain *fd)
 {
 	std::list<FaultIntersection> sdc, due, failures = compute_failure_intersections(fd);
 
@@ -76,7 +76,7 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(GroupDomain *fd)
 		fail.uncorrectable();
 	}
 
-	return std::make_pair(sdc.size(), due.size());
+	return {sdc.size(), due.size()};
 }
 
 std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(GroupDomain *fd)
