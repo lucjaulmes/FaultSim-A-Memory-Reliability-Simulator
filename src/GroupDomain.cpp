@@ -45,14 +45,6 @@ GroupDomain::~GroupDomain()
 
 void GroupDomain::addDomain(FaultDomain *domain)
 {
-	// DR ADDED
-	// DR HACK - propagate 3D mode settings from parent to all children as they are added
-	domain->cube_model_enable = cube_model_enable;
-	domain->tsv_bitmap = tsv_bitmap;
-	domain->cube_data_tsv = cube_data_tsv;
-	domain->tsv_info = tsv_info;
-	domain->enable_tsv = enable_tsv;
-
 	m_children.push_back(domain);
 }
 
@@ -96,17 +88,6 @@ uint64_t GroupDomain::getFaultCountPerm()
 		n_faults_permanent += fd->getFaultCountPerm();
 
 	return n_faults_permanent;
-}
-
-int GroupDomain::update(uint test_mode_t)
-{
-	int return_val = 0;
-
-	for (FaultDomain *fd: m_children)
-		if (fd->update(test_mode_t) == 1)
-			return_val = 1;
-
-	return return_val;
 }
 
 void GroupDomain::dumpState()
@@ -240,16 +221,16 @@ void GroupDomain::finalize()
 		rs->clear_counters();
 }
 
-void GroupDomain::printStats()
+void GroupDomain::printStats(uint64_t sim_seconds)
 {
 	for (RepairScheme *rs: m_repairSchemes)
 		rs->printStats();
 
 	for (FaultDomain *fd: m_children)
-		fd->printStats();
+		fd->printStats(sim_seconds);
 
 	// TODO: some slightly more advanced stats. At least some variability.
-	double sim_seconds_to_FIT = 3600e9 / m_sim_seconds;
+	double sim_seconds_to_FIT = 3600e9 / sim_seconds;
 
 	double device_fail_rate = ((double)stat_n_failures) / ((double)stat_n_simulations);
 	double FIT_raw = device_fail_rate * sim_seconds_to_FIT;

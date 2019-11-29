@@ -37,8 +37,8 @@ public:
 	uint64_t fill_repl(GroupDomain *fd);
 	void printStats();
 	void resetStats();
-	std::pair<uint64_t, uint64_t> repair_hc(GroupDomain *fd);
-	std::pair<uint64_t, uint64_t> repair_vc(GroupDomain *fd);
+	std::pair<uint64_t, uint64_t> repair_horizontalTSV(GroupDomain *fd);
+	std::pair<uint64_t, uint64_t> repair_verticalTSV(GroupDomain *fd);
 	int64_t getbank_number(FaultRange fr_number);
 private:
 	const uint64_t m_n_correct, m_n_detect;

@@ -89,7 +89,6 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 		std::cout << "  + override " << opt.substr(0, pos) << '=' << opt.substr(pos + 1) << std::endl;
 	}
 
-	settings.sim_mode = pt.get<int>("Sim.sim_mode");
 	settings.interval_s = pt.get<uint64_t>("Sim.interval_s");
 	settings.scrub_s = pt.get<uint64_t>("Sim.scrub_s");
 	settings.max_s = pt.get<uint64_t>("Sim.max_s");

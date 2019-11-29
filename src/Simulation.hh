@@ -34,7 +34,6 @@ public:
 	Simulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test_mode_t, bool debug_mode_t,
 	    bool cont_running_t, uint64_t output_bucket_t);
 	~Simulation();
-	void init(uint64_t max_s);
 	void reset();
 	void finalize();
 	void simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::string output_file);
@@ -42,7 +41,7 @@ public:
 	void addDomain(GroupDomain *domain);
 	void getFaultCounts(uint64_t *pTrans, uint64_t *pPerm);
 	void resetStats();
-	void printStats();   // output end-of-run stats
+	void printStats(uint64_t max_time);
 
 protected:
 	uint64_t m_interval;

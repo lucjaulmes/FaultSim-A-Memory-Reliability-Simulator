@@ -28,7 +28,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct Settings
 {
 	// Simulator settings
-	int sim_mode;        // Interval or Event based
 	std::string output_file;      // Output results file
 	uint64_t interval_s; // Simulation interval (seconds)
 	uint64_t scrub_s;    // Scrubbing interval (seconds)

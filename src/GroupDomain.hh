@@ -28,8 +28,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class GroupDomain : public FaultDomain
 {
 protected:
-	uint64_t m_interval, m_sim_seconds;
-
 	// cross-simulation overall program run statistics
 	uint64_t stat_n_simulations, stat_n_failures, stat_n_failures_undetected, stat_n_failures_uncorrected;
 
@@ -45,7 +43,6 @@ public:
 	virtual ~GroupDomain();
 
 	virtual void setFIT() {};
-	virtual int update(uint test_mode_t);
 
     std::pair<uint64_t, uint64_t> repair();
     uint64_t fill_repl();
@@ -54,7 +51,7 @@ public:
 
 	void reset();
 	void dumpState();
-    void printStats();
+    void printStats(uint64_t max_time);
     void resetStats();
     uint64_t getFailedSimCount();
 
@@ -63,17 +60,8 @@ public:
 	inline virtual uint64_t getFaultCountUncorrected() { return n_errors_uncorrected; };
 	inline virtual uint64_t getFaultCountUndetected() { return n_errors_undetected; };
 
-	virtual void init(uint64_t interval, uint64_t sim_seconds)
-	{
-		m_interval = interval;
-		m_sim_seconds = sim_seconds;
-
-		for (FaultDomain *fd: m_children)
-			fd->init(interval, sim_seconds);
-	}
-
 	void addRepair(RepairScheme *repair);
-	void addDomain(FaultDomain *domain);
+	virtual void addDomain(FaultDomain *domain);
 
 	std::list<FaultDomain *> &getChildren()
 	{

@@ -36,7 +36,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CubeRAIDRepair.hh"
 #include "BCHRepair.hh"
 #include "Simulation.hh"
-#include "EventSimulation.hh"
 #include "Settings.hh"
 
 void printBanner();
@@ -114,8 +113,6 @@ int main(int argc, char **argv)
 		module = genModule3D();
 
 	// Configure simulator ///////////////////////////////////////////////
-	std::unique_ptr<Simulation> sim;
-
 	// Simulator settings are as follows:
 	// a. The setting.interval_s (in seconds) indicates the granularity of inserting/repairing faults.
 	// b. The setting.scrub_s (in seconds) indicates the granularity of scrubbing transient faults.
@@ -127,27 +124,13 @@ int main(int argc, char **argv)
 	//		 This enables the user to test their ECC technique and also stress corner cases for fault specific ECC.
 	// NOTE: The test_mode setting is currently not implemented in the Event Based Simulator
 
-	if (settings.sim_mode == 1)
-	{
-		sim.reset(new Simulation(settings.interval_s, settings.scrub_s, settings.test_mode,
-		            settings.debug, settings.continue_running, settings.output_bucket_s));
-	}
-	else if (settings.sim_mode == 2)
-	{
-		sim.reset(new EventSimulation(settings.interval_s, settings.scrub_s, settings.test_mode,
-		            settings.debug, settings.continue_running, settings.output_bucket_s));
-	}
-	else
-	{
-		std::cout << "ERROR: Invalid sim_mode option (must be 1 (interval-based) or 2 (event-driven))\n";
-		exit(0);
-	}
+	Simulation sim(settings.interval_s, settings.scrub_s, settings.test_mode,
+				settings.debug, settings.continue_running, settings.output_bucket_s);
 
 	// Run simulator //////////////////////////////////////////////////
-	sim->addDomain(module);       // register the top-level memory object with the simulation engine
-	sim->init(settings.max_s);    // one-time set-up that does FIT rate scaling based on interval
-	sim->simulate(settings.max_s, settings.n_sims, settings.verbose, settings.output_file);
-	sim->printStats();
+	sim.addDomain(module);       // register the top-level memory object with the simulation engine
+	sim.simulate(settings.max_s, settings.n_sims, settings.verbose, settings.output_file);
+	sim.printStats(settings.max_s);
 
 	return SUCCESS;
 }

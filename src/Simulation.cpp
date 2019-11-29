@@ -30,11 +30,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Simulation.hh"
 #include "FaultDomain.hh"
+#include "DRAMDomain.hh"
 
 
 Simulation::Simulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test_mode_t,
-    bool debug_mode_t, bool cont_running_t, uint64_t output_bucket_t) :
-	m_interval(interval_t)
+					   bool debug_mode_t, bool cont_running_t, uint64_t output_bucket_t)
+	: m_interval(interval_t)
 	, m_scrub_interval(scrub_interval_t)
 	, test_mode(test_mode_t)
 	, debug_mode(debug_mode_t)
@@ -61,12 +62,6 @@ void Simulation::addDomain(GroupDomain *domain)
 {
 	domain->setDebug(debug_mode);
 	m_domains.push_back(domain);
-}
-
-void Simulation::init(uint64_t max_s)
-{
-	for (GroupDomain *fd: m_domains)
-		fd->init(m_interval, max_s);
 }
 
 void Simulation::reset()
@@ -210,93 +205,114 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 
 uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 {
-	// returns number of uncorrectable simulations
-
 	// reset the domain states e.g. recorded errors for the simulated timeframe
 	reset();
 
-	// calculate number of iterations
-	uint64_t max_iterations = max_s / m_interval;
-
-	// compute the ratio at which scrubbing needs to be performed
-	uint64_t scrub_ratio = m_scrub_interval / m_interval;
-	uint64_t errors = 0;
-
-	/*************************************************
-	 * THIS IS THE LOOP FOR A SINGLE RUN FOR N YEARS *
-	 *************************************************/
-	for (uint64_t iter = 0; iter < max_iterations; iter++)
-	{
-		// loop through all fault domains and update
-		for (GroupDomain *fd: m_domains)
+	// Generate all the fault events that will happen
+	std::vector<std::pair<double, FaultRange *>> q1;
+	for (GroupDomain *fd: m_domains)
+		for (FaultDomain *fr: fd->getChildren())
 		{
-			// Insert Faults Hierarchially: GroupDomain -> Lower Domains -> ..
-			// Since (time between updates) << (Total Running Time), faults can be assumed to be inserted instantaneously
-			int newfault = fd->update(test_mode);
-			uint64_t n_undetected = 0;
-			uint64_t n_uncorrected = 0;
-
-			// Run the Repair function: This will check the correctability/ detectability of the fault(s)
-			// Repairing is also done instantaneously
-			if (newfault)
+			DRAMDomain *chip = dynamic_cast<DRAMDomain *>(fr);
+			for (int errtype = 0; errtype < DRAM_MAX * 2; errtype++)
 			{
-				if (verbose == 2)
-				{
-					// Dump all FaultRanges before
-					std::cout << "FAULTS INSERTED: BEFORE REPAIR\n";
-					fd->dumpState();
-				}
+				bool transient = errtype % 2;
+				fault_class_t fault = fault_class_t(errtype / 2);
 
-				std::tie(n_undetected, n_uncorrected) = fd->repair();
-
-				if (verbose == 2)
-				{
-					// Dump all FaultRanges after
-					std::cout << "FAULTS INSERTED: AFTER REPAIR\n";
-					fd->dumpState();
-				}
+				double event_time = 0, max_time = max_s;
+				while ((event_time += chip->next_fault_event(fault, transient)) <= max_time)
+					q1.push_back(std::make_pair(event_time, chip->genRandomRange(fault, transient)));
 			}
-
-			if (n_undetected || n_uncorrected)
-			{
-				// Update the appropriate Bin to log into the output file
-				uint64_t bin = (iter * m_interval) / bin_length;
-				fail_time_bins[bin]++;
-
-				if (n_uncorrected > 0)
-					fail_uncorrectable[bin]++;
-				if (n_undetected > 0)
-					fail_undetectable[bin]++;
-
-				errors++;
-
-				if (!cont_running)
-				{
-					// if any iteration fails to repair, halt the simulation and report failure
-					finalize();
-					return 1;
-				}
-			}
-
 		}
 
-		// Check if the time to scrub the domain has arrived
-		if ((iter % scrub_ratio) == 0)
-			for (GroupDomain *fd: m_domains)
-			{
-				fd->scrub();
 
-				// User Defined Special operation to be performed while Scrubbing
-				// (??) -> causes failure if returns 1
-				if (fd->fill_repl())
-				{
-					finalize();
-					return 1;
-				}
+	/* TODO:
+	 * Allow GroupDomain-level error injections, probably using a GroupDomain-level function
+	 * that does nothing from GroupDomain_dimm and inserts TSV faults for GroupDomain_cube.
+	 * */
+
+	// Sort the fault events in arrival order
+	std::sort(q1.begin(), q1.end(), [] (auto &a, auto &b) { return (a.first < b.first); });
+
+
+	uint64_t errors = 0;
+
+	// Step through the event list, injecting a fault into corresponding chip at each event, and invoking ECC
+	for (auto time_fault_pair = q1.begin(); time_fault_pair != q1.end(); ++time_fault_pair)
+	{
+		double timestamp = time_fault_pair->first;
+		FaultRange *fr = time_fault_pair->second;
+
+		DRAMDomain *pDRAM = fr->m_pDRAM;
+		pDRAM->insertFault(fr);
+
+		if (verbose == 2)
+		{
+			std::cout << "FAULTS INSERTED: BEFORE REPAIR\n";
+			pDRAM->dumpState();
+		}
+
+		// Peek at the future
+		auto next_pair = std::next(time_fault_pair);
+		bool repair_before_next = next_pair == q1.end() || floor(timestamp / m_interval) != floor(next_pair->first / m_interval);
+		bool scrub_before_next  = next_pair == q1.end() || floor(timestamp / m_scrub_interval) != floor(next_pair->first / m_scrub_interval);
+
+
+		// Somewhat artificial notion of “repair interval” to simulate faults that appear simultaneously
+		if (!repair_before_next)
+			continue;
+
+
+		// Run the repair function: This will check the correctability / detectability of the fault(s)
+		uint64_t n_undetected = 0;
+		uint64_t n_uncorrected = 0;
+		std::tie(n_undetected, n_uncorrected) = m_domains.front()->repair();
+
+		if (verbose == 2)
+		{
+			std::cout << "FAULTS INSERTED: AFTER REPAIR\n";
+			pDRAM->dumpState();
+		}
+
+
+		if (n_undetected || n_uncorrected)
+		{
+			uint64_t bin = timestamp / bin_length;
+			fail_time_bins[bin]++;
+
+			if (n_uncorrected > 0)
+				fail_uncorrectable[bin]++;
+			if (n_undetected > 0)
+				fail_undetectable[bin]++;
+
+			errors++;
+
+			if (!cont_running)
+			{
+				// if any repair fails, halt the simulation and report failure
+				finalize();
+				return 1;
 			}
+		}
+
+		// Scrubbing is performed after a fault has occured and if the next fault is in a different scrub interval
+		if (!scrub_before_next)
+			continue;
+
+		for (FaultDomain *fd: m_domains)
+		{
+			fd->scrub();
+			if (fd->fill_repl())
+			{
+				finalize();
+				return 1;
+			}
+		}
 	}
 
 	/***********************************************/
+
+	// returns number of uncorrectable simulations
 
 	finalize();
 	if (errors > 0)
@@ -320,13 +336,13 @@ void Simulation::getFaultCounts(uint64_t *pTrans, uint64_t *pPerm)
 	*pPerm = sum_perm;
 }
 
-void Simulation::printStats()
+void Simulation::printStats(uint64_t max_time)
 {
 	std::cout << "\n";
 	// loop through all domains and report itemized failures, while aggregating them to calculate overall stats
 
 	for (GroupDomain *fd: m_domains)
-		fd->printStats();
+		fd->printStats(max_time);
 
 	std::cout << "\n";
 }

@@ -36,16 +36,23 @@ public:
 				double weibull_shape_parameter = 1.);
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
-	void init(uint64_t interval, uint64_t sim_seconds);
-	int update(uint test_mode_t);   // perform one iteration
 	void scrub();
 	virtual void reset();
 
-	std::list<FaultRange *> &getRanges();
-	const std::list<FaultRange *> &getRanges() const;
+	const std::list<FaultRange *> &getRanges() const
+	{
+		return m_faultRanges;
+	}
+
+	void insertFault(FaultRange *fr)
+	{
+		m_faultRanges.push_back(fr);
+		countFault(fr->transient);
+	}
+
 
 	void dumpState();
-	void printStats();
+	void printStats(uint64_t max_time);
 	void resetStats();
 
 	// based on a fault, create the range of all faulty addresses
@@ -54,7 +61,6 @@ public:
 	FaultRange *genRandomRange(bool rank, bool bank, bool row, bool col, bool bit, bool transient, int64_t rowbit_num,
 	    bool isTSV_t);
 	double next_fault_event(fault_class_t faultClass, bool transient);
-	bool fault_in_interval(fault_class_t faultClass, bool transient);
 
 	fault_class_t maskClass(uint64_t mask);
 	static const char *faultClassString(fault_class_t i);
@@ -63,11 +69,8 @@ protected:
 	struct fault_param { double transient, permanent ;};
 	struct fault_param FIT_rate[DRAM_MAX];
 
-	// Expected time between faults (for event-driven simulation)
+	// Expected time between faults
 	struct fault_param secs_per_fault[DRAM_MAX];
-
-	// Probability of fault in an interval (for normal simulation)
-	struct fault_param error_probability[DRAM_MAX];
 
 	std::list<FaultRange *> m_faultRanges;
 
@@ -75,7 +78,6 @@ protected:
 	random32_engine_t eng32;
 
 	unsigned chip_in_rank;
-	uint64_t curr_interval;
 
 	uint64_t n_faults_transient_class[DRAM_MAX];
 	uint64_t n_faults_permanent_class[DRAM_MAX];

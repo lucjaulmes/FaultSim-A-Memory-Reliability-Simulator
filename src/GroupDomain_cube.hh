@@ -33,11 +33,12 @@ public:
 	~GroupDomain_cube();
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
-	void init(uint64_t interval, uint64_t max_s);
-	int update(uint test_mode_t);    // perform one iteration
 	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV);
+
+	void addDomain(FaultDomain *domain);
 protected:
-	void generateRanges(int faultClass);   // based on a fault, create all faulty address ranges
+	void generateRanges(int faultClass);
+	void generateTSV(bool transient);
 
 	random64_engine_t  eng;
 	random_generator_t gen;

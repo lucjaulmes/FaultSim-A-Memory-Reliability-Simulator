@@ -28,16 +28,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class GroupDomain_dimm : public GroupDomain
 {
 public:
-	GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t banks_t, uint64_t burst_length);
-
-	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
-	void init(uint64_t interval, uint64_t max_s);
-	int update(uint test_mode_t);    // perform one iteration
-protected:
-	void generateRanges(int faultClass);   // based on a fault, create all faulty address ranges
-
-	random64_engine_t  eng;
-	random_generator_t gen;
+	GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_length);
 };
 
 

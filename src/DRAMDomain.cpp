@@ -81,8 +81,6 @@ DRAMDomain::DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_
 	m_mask[BANKS] = (m_banks    - 1) << m_shift[BANKS];
 	m_mask[RANKS] = (m_ranks    - 1) << m_shift[RANKS];
 
-	curr_interval = 0;
-
 	if (settings.verbose)
 	{
 		double gbits = ((double)(m_ranks * m_banks * m_rows * m_cols * m_bitwidth)) / ((double)1024 * 1024 * 1024);
@@ -98,17 +96,6 @@ DRAMDomain::DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_
 		std::cout << "# -------------------------------------------------------------------\n";
 	}
 }
-
-std::list<FaultRange *> &DRAMDomain::getRanges()
-{
-	return m_faultRanges;
-}
-
-const std::list<FaultRange *> &DRAMDomain::getRanges() const
-{
-	return m_faultRanges;
-}
-
 
 fault_class_t DRAMDomain::maskClass(uint64_t mask)
 {
@@ -169,97 +156,6 @@ const char *DRAMDomain::faultClassString(fault_class_t i)
 	return "";
 }
 
-int DRAMDomain::update(uint test_mode_t)
-{
-	int newfault = 0;
-
-	// Insert DRAM die faults
-	for (uint i = 0; i < DRAM_MAX; i++)
-	{
-		fault_class_t f = fault_class_t(i);
-		if (test_mode_t == 0)
-		{
-			bool transient = true;
-			if (fault_in_interval(f, transient))
-			{
-				n_faults_transient++;
-				n_faults_transient_class[i]++;
-				generateRanges(f, transient);
-				newfault = 1;
-			}
-
-			if (fault_in_interval(f, not transient))
-			{
-				n_faults_permanent++;
-				n_faults_permanent_class[i]++;
-				generateRanges(f, not transient);
-				newfault = 1;
-			}
-
-		}
-		else
-		{
-			if (i == (test_mode_t - 1))
-			{
-				n_faults_transient++;
-				n_faults_transient_class[i]++;
-				generateRanges(f, true);
-				newfault = 1;
-			}
-
-			if (i == (test_mode_t - 1))
-			{
-				n_faults_permanent++;
-				n_faults_permanent_class[i]++;
-				generateRanges(f, false);
-				newfault = 1;
-			}
-		}
-	}
-
-	// Insert TSV faults
-	if ((cube_model_enable > 0) && enable_tsv)
-	{
-		for (uint ii = (chip_in_rank * cube_data_tsv); ii < ((chip_in_rank + 1) * cube_data_tsv); ii++)
-		{
-			if (tsv_bitmap[ii] == true)
-			{
-				if (tsv_info[ii] == 1)
-				{
-					n_faults_permanent++;
-					n_faults_permanent_tsv++;
-					newfault = 1;
-
-					for (uint jj = 0; jj < (m_cols * m_bitwidth / cube_data_tsv); jj++)
-					{
-						m_faultRanges.push_back(genRandomRange(0, 0, 0, 1, 1, false, (ii % cube_data_tsv) + (jj * cube_data_tsv), true));
-						//std::cout << "|" <<(ii%cube_data_tsv)+(jj*cube_data_tsv)<< "|";
-					}
-					tsv_info[ii] = 3;
-				}
-				else if (tsv_info[ii] == 2)
-				{
-					n_faults_transient++;
-					n_faults_transient_tsv++;
-					newfault = 1;
-
-					for (uint jj = 0; jj < (m_cols * m_bitwidth / cube_data_tsv); jj++)
-					{
-						m_faultRanges.push_back(genRandomRange(0, 0, 0, 1, 1, true, (ii % cube_data_tsv) + (jj * cube_data_tsv), true));
-						//std::cout << "|" <<(ii%cube_data_tsv)+(jj*cube_data_tsv)<< "|";
-					}
-					tsv_info[ii] = 4;
-				}
-			}
-		}
-	}
-
-	curr_interval++;
-
-	return newfault;
-}
-
-
 bool first_time = 1;
 
 void DRAMDomain::reset()
@@ -302,9 +198,15 @@ void DRAMDomain::scrub()
 void DRAMDomain::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
 {
 	if (isTransient)
+	{
 		FIT_rate[faultClass].transient = FIT;
+		secs_per_fault[faultClass].transient = 3600e9 / FIT;
+	}
 	else
+	{
 		FIT_rate[faultClass].permanent = FIT;
+		secs_per_fault[faultClass].permanent = 3600e9 / FIT;
+	}
 }
 
 double DRAMDomain::next_fault_event(fault_class_t faultClass, bool transient)
@@ -315,33 +217,6 @@ double DRAMDomain::next_fault_event(fault_class_t faultClass, bool transient)
 		return weibull_random * secs_per_fault[faultClass].transient;
 	else
 		return weibull_random * secs_per_fault[faultClass].permanent;
-}
-
-inline bool DRAMDomain::fault_in_interval(fault_class_t faultClass, bool transient)
-{
-	return gen() <= (transient ? error_probability[faultClass].transient : error_probability[faultClass].permanent);
-}
-
-void DRAMDomain::init(uint64_t interval, uint64_t sim_seconds)
-{
-	// one-time initialization scales FIT rates to interval scale
-
-	// For Event Driven sim, use expected values of MTBFs in seconds
-	for (int i = 0; i < DRAM_MAX; i++)
-	{
-		secs_per_fault[i].transient = 3600e9 / (FIT_rate[i].transient);
-		secs_per_fault[i].permanent = 3600e9 / (FIT_rate[i].permanent);
-	}
-
-	// For interval simulation, compute probability (using exponential model) of having a fault during any interval
-	double interval_factor = interval / 3600e9;
-	for (int i = 0; i < DRAM_MAX; i++)
-	{
-		error_probability[i].transient = 1.0 - exp(-FIT_rate[i].transient * interval_factor);
-		error_probability[i].permanent = 1.0 - exp(-FIT_rate[i].permanent * interval_factor);
-		assert(0 <= error_probability[i].transient && error_probability[i].transient <= 1);
-		assert(0 <= error_probability[i].permanent && error_probability[i].permanent <= 1);
-	}
 }
 
 void DRAMDomain::generateRanges(fault_class_t faultClass, bool transient)
@@ -387,7 +262,7 @@ FaultRange *DRAMDomain::genRandomRange(fault_class_t faultClass, bool transient)
 }
 
 FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col, bool bit, bool transient,
-    int64_t rowbit_num, bool isTSV)
+									   int64_t rowbit_num, bool isTSV)
 {
 	uint64_t address = 0, wildcard_mask = 0;
 	 // maximum number of bits covered by FaultRange
@@ -450,7 +325,7 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 	return new FaultRange(this, address, wildcard_mask, isTSV, transient, max_faults);
 }
 
-void DRAMDomain::printStats()
+void DRAMDomain::printStats(uint64_t max_time)
 {
 	std::cout << " Transient: ";
 

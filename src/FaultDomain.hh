@@ -41,6 +41,15 @@ protected:
 	uint64_t n_faults_transient;
 	uint64_t n_faults_permanent;
 
+	inline
+	void countFault(bool transient)
+	{
+		if (transient)
+			n_faults_transient++;
+		else
+			n_faults_permanent++;
+	}
+
 public:
 	inline
 	FaultDomain(const char *name)
@@ -88,27 +97,14 @@ public:
 		return std::make_pair(all_faults, all_faults);
 	}
 
-	inline
-	void countFault(bool transient)
-	{
-		if (transient)
-			n_faults_transient++;
-		else
-			n_faults_permanent++;
-	}
-
-	// perform one iteration ; Prashant: Changed the update to return a non-void value
-	virtual int update(uint test_mode_t) = 0;
 	virtual uint64_t fill_repl() { return 0; }
 	virtual void scrub() = 0;
-	// set up before first simulation run
-	virtual void init(uint64_t interval, uint64_t sim_seconds) = 0;
 	// reset after each sim run
 	virtual void reset() {}
 	virtual void dumpState() {}
 
 	virtual void resetStats() {}
-	virtual void printStats() {} // output end-of-run stats
+	virtual void printStats(uint64_t max_time) = 0; // output end-of-run stats
 
 	inline
 	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV)
@@ -119,25 +115,28 @@ public:
 			tsv_permanentFIT = FIT_TSV;
 	}
 
-	//3D memory variables
+	// 3D memory variables
 	uint64_t cube_model_enable;
+	bool *tsv_bitmap;
+	uint64_t cube_data_tsv;
+	uint64_t *tsv_info;
+	uint64_t enable_tsv;
+
 	uint64_t cube_addr_dec_depth;
 	double tsv_transientFIT;
 	double tsv_permanentFIT;
 	uint64_t tsv_n_faults_transientFIT_class;
 	uint64_t tsv_n_faults_permanentFIT_class;
+
 	uint64_t chips;
 	uint64_t banks;
 	uint64_t burst_size;
+
 	uint64_t cube_ecc_tsv;
 	uint64_t cube_redun_tsv;
-	uint64_t cube_data_tsv;
-	bool *tsv_bitmap;
-	uint64_t *tsv_info;
 	uint64_t total_addr_tsv;
 	uint64_t total_tsv;
 	bool tsv_shared_accross_chips;
-	uint64_t enable_tsv;
 	//Static Arrays for ISCA2014
 	uint64_t tsv_swapped_hc[9];
 	uint64_t tsv_swapped_vc[8];

@@ -37,50 +37,32 @@ GroupDomain_cube::GroupDomain_cube(const char *name, uint cube_model_t, uint64_t
 	//Register Cube Model
 	cube_model_enable = cube_model_t;
 	cube_addr_dec_depth = cube_addr_dec_depth_t; //Address Decoding Depth
+
 	//Check if TSVs need to be enabled for Fault Modelling
 	enable_tsv = enable_tsv_t;
+
 	//Params to figure out the number of TSVs in the chip
 	chips = chips_t;
 	banks = banks_t;
 	burst_size = burst_size_t;
+
 	/**************************************************/
 	//Total number of TSVs in each category
 	cube_ecc_tsv = cube_ecc_tsv_t;
 	cube_redun_tsv = cube_redun_tsv_t;
 	/*Assuming 32Bytes of DATA, we get 32*8 = 256 data bits out. If DDR is used, then we have 512 data bits out for horizontal channel config. Assuming 16Bytes of DATA, we get 16*8 = 128 data bits out. There are ~20 (16 Data Value + 4 ECC - may be) TSVs for Data per bank. If DDR is used and in 8 bursts, we will get 256 bits out for vertical channel config*/
 	cube_data_tsv = burst_size / 2; // (DDR)
+
 	/**************************************************/
-	//Compute the number of Address TSVs required for each depth
+	// Compute the number of Address TSVs required for each depth
 	// DR DEBUG: this is wrong - also get chip size from the DRAMDomains
 	total_addr_tsv = 0;
 
-	/*
-	//if(cube_model_enable==1)
-	//  total_addr_tsv=chip_size>>10; // As 512 bits are drawn every access and each ADDR TSV is usually shared by 2 WLs and 2 Columns (due to size of TSV)
-
-	//Compute the total Addr TSVs required in case of complete decode
-	uint64_t org_tsv_count=total_addr_tsv;
-	uint64_t complete_decode_tsv=0;
-	asm ( "\tbsr %1, %0\n"
-	        : "=r"(complete_decode_tsv)
-	          : "r" (org_tsv_count)
-	);
-	if(cube_addr_dec_depth > complete_decode_tsv)
+	if (cube_model_enable == 1)
 	{
-	    cube_addr_dec_depth=complete_decode_tsv;
-	}
-	//Read the number of Address TSVs based on the pre-decoding
-	uint64_t pre_counter=0;
-	for(pre_counter=0; pre_counter< cube_addr_dec_depth ; pre_counter++){
-	    total_addr_tsv=total_addr_tsv/2;
-	}
-	total_addr_tsv=total_addr_tsv+pre_counter;
-
-	*/
-
-	if (cube_model_enable == 1) //Horizontal Channels
-	{
-		//The total TSVs per bank will be equal to this number divided by number of banks + ecc per bank + data burst TSVs+ ecc for data + redundant tsv
+		// Horizontal Channels
+		// The total TSVs per bank will be equal to this number, divided by
+		// (number of banks + ecc per bank + data burst TSVs + ecc for data + redundant tsv)
 		total_tsv = (total_addr_tsv + cube_ecc_tsv + cube_redun_tsv + cube_data_tsv) * chips;
 
 		tsv_bitmap = new bool[(total_addr_tsv + cube_ecc_tsv + cube_redun_tsv + cube_data_tsv)*chips]();
@@ -124,47 +106,70 @@ GroupDomain_cube::~GroupDomain_cube()
 	delete[] tsv_info;
 }
 
-int GroupDomain_cube::update(uint test_mode_t)
+void GroupDomain_cube::addDomain(FaultDomain *domain)
 {
-	int newfault = 0;
-	uint64_t location = 0;
+	// propagate 3D mode settings from parent to all children as they are added
+	domain->cube_model_enable = cube_model_enable;
+	domain->tsv_bitmap = tsv_bitmap;
+	domain->cube_data_tsv = cube_data_tsv;
+	domain->tsv_info = tsv_info;
+	domain->enable_tsv = enable_tsv;
+
+	GroupDomain::addDomain(domain);
+}
+
+void GroupDomain_cube::generateTSV(bool transient)
+{
 	//Check if TSVs are enabled
-	if (enable_tsv)
+	if (!enable_tsv)
+		return;
+
+	// Record the fault and update the info for TSV
+	uint64_t location = eng() % total_tsv;
+
+		// only record un-correctable faults for overall simulation success determination
+	if (transient)
+		tsv_n_faults_transientFIT_class++;
+	else
+		tsv_n_faults_permanentFIT_class++;
+
+	if (tsv_bitmap[location] == false)
 	{
-		// determine whether any faults happened.
-		// if so, record them.
-		double random = gen();
-		if (random <= tsv_transientFIT)
+		tsv_bitmap[location] = true;
+		tsv_info[location] = transient ? 1 : 2;
+	}
+/*
+ * from (legacy) DRAMDomain::update() -> once GroupDomain_cube::update() had generated TSV locations,
+ * each chip went over all the positions and inserted into the TSV faults into its faults ranges:
+ *
+	for (unsigned ii = (chip_in_rank * cube_data_tsv); ii < ((chip_in_rank + 1) * cube_data_tsv); ii++)
+	{
+		if (tsv_bitmap[ii] == true && tsv_info[ii] <= 2)
 		{
-			// only record un-correctable faults for overall simulation success determination
-			tsv_n_faults_transientFIT_class++;
-			newfault = 1;
-			//Record the fault and update the info for TSV
-			location = eng() % total_tsv;
-			if (tsv_bitmap[location] == false)
+			bool transient;
+			if (tsv_info[ii] == 1)
 			{
-				tsv_bitmap[location] = true;
-				tsv_info[location] = 1;
+				n_faults_permanent++;
+				n_faults_permanent_tsv++;
+				transient = false;
 			}
-		}
-		random = gen();
-		if (random <= tsv_permanentFIT)
-		{
-			// only record un-correctable faults for overall simulation success determination
-			tsv_n_faults_permanentFIT_class++;
-			newfault = 1;
-			//Record the fault in a tsv and update its info
-			location = eng() % total_tsv;
-			if (tsv_bitmap[location] == false)
+			else // tsv_info[ii] == 2
 			{
-				tsv_bitmap[location] = true;
-				tsv_info[location] = 2;
+				n_faults_transient++;
+				n_faults_transient_tsv++;
+				transient = true;
 			}
+
+			for (uint jj = 0; jj < (m_cols * m_bitwidth / cube_data_tsv); jj++)
+			{
+				m_faultRanges.push_back(genRandomRange(0, 0, 0, 1, 1, transient, (ii % cube_data_tsv) + (jj * cube_data_tsv), true));
+				//std::cout << "|" <<(ii%cube_data_tsv)+(jj*cube_data_tsv)<< "|";
+			}
+
+			tsv_info[ii] += 2;
 		}
 	}
-	GroupDomain::update(test_mode_t);
-
-	return newfault;
+*/
 }
 
 void GroupDomain_cube::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
@@ -175,23 +180,6 @@ void GroupDomain_cube::setFIT(fault_class_t faultClass, bool isTransient, double
 void GroupDomain_cube::setFIT_TSV(bool tsv_isTransient, double FIT_TSV)
 {
 	FaultDomain::setFIT_TSV(tsv_isTransient, FIT_TSV);
-}
-
-void GroupDomain_cube::init(uint64_t interval, uint64_t max_s)
-{
-	m_interval = interval;
-	m_sim_seconds = max_s;
-
-	double sec_per_hour = 60 * 60;
-	double interval_factor = (interval / sec_per_hour) / 1000000000.0;
-
-	tsv_transientFIT = (double)1.0 - exp(-tsv_transientFIT * interval_factor);
-	tsv_permanentFIT = (double)1.0 - exp(-tsv_permanentFIT * interval_factor);
-
-	assert(tsv_transientFIT >= 0);
-	assert(tsv_transientFIT <= 1);
-	assert(tsv_permanentFIT >= 0);
-	assert(tsv_permanentFIT <= 1);
 }
 
 void GroupDomain_cube::generateRanges(int faultClass)

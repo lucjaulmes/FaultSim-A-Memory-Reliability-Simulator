@@ -25,34 +25,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <sys/time.h>
 
-GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t banks_t,
-    uint64_t burst_size_t) : GroupDomain(name)
-	, eng()
-	, gen(eng, random_uniform_t(0, 1))
+GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t banks_t, uint64_t burst_size_t)
+	: GroupDomain(name)
 {
-	chips = chips_t; //Total Chips in a DIMM
-	banks = banks_t; //Total Banks per Chip
-	burst_size = burst_size_t; //The burst length per access, this determines the number of TSVs or number of DATA pins coming out of a Chip in a DIMM
-
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	gen.engine().seed(tv.tv_sec * 1000000 + (tv.tv_usec));
-}
-
-int GroupDomain_dimm::update(uint test_mode_t)
-{
-	return GroupDomain::update(test_mode_t);
-}
-
-void GroupDomain_dimm::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
-{
-}
-
-void GroupDomain_dimm::init(uint64_t interval, uint64_t max_s)
-{
-	GroupDomain::init(interval, max_s);
-}
-
-void GroupDomain_dimm::generateRanges(int faultClass)
-{
+	chips = chips_t; // Total Chips in a DIMM
+	banks = banks_t; // Total Banks per Chip
+	burst_size = burst_size_t; // The burst length per access, this determines the number of TSVs or number of DATA pins coming out of a Chip in a DIMM
 }

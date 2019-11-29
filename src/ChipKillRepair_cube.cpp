@@ -39,15 +39,15 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 
 std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(GroupDomain *fd)
 {
-	//Choose the algorithm based on the whether its modelled as vertical channels or horizontal channels
+	// Choose the algorithm based on the whether its modelled as vertical channels or horizontal channels
 	if (fd->cube_model_enable == 1)
-		return repair_hc(fd);
+		return repair_horizontalTSV(fd);
 	else
-		return repair_vc(fd);
+		return repair_verticalTSV(fd);
 }
 
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_hc(GroupDomain *fd)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_horizontalTSV(GroupDomain *fd)
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	std::list<FaultDomain *> &pChips = fd->getChildren();
@@ -214,7 +214,7 @@ std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_hc(GroupDomain *fd)
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_vc(GroupDomain *fd)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_verticalTSV(GroupDomain *fd)
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	return std::make_pair(n_undetectable, n_uncorrectable);
