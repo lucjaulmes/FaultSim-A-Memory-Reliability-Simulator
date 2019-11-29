@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FAULTRANGE_HH_
 
 #include <string>
+#include <vector>
 #include <list>
 #include <tuple>
 

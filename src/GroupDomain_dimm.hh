@@ -23,9 +23,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GROUPDOMAIN_DIMM_HH_
 
 #include <iostream>
+#include <functional>
 
 #include "dram_common.hh"
-
 #include "GroupDomain.hh"
 
 class GroupDomain_dimm : public GroupDomain
@@ -45,6 +45,9 @@ public:
 	};
 
 	GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_length);
+
+	std::list<FaultIntersection> intersecting_ranges(unsigned symbol_size, std::function<bool(FaultIntersection&)> predicate =
+													 [] (FaultIntersection &f) { return true; });
 };
 
 
