@@ -160,8 +160,6 @@ bool first_time = 1;
 
 void DRAMDomain::reset()
 {
-	FaultDomain::reset();
-
 	for (FaultRange *fr: m_faultRanges)
 		delete fr;
 

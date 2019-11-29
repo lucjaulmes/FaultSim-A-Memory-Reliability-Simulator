@@ -42,10 +42,9 @@ public:
 	GroupDomain(const char *name);
 	virtual ~GroupDomain();
 
-	virtual void setFIT() {};
+	virtual void setFIT_TSV(bool transient, double FIT) = 0;
 
     std::pair<uint64_t, uint64_t> repair();
-    uint64_t fill_repl();
     void scrub();
     void finalize();
 
@@ -59,14 +58,23 @@ public:
 	inline virtual uint64_t getFaultCountUncorrected() { return n_errors_uncorrected; };
 	inline virtual uint64_t getFaultCountUndetected() { return n_errors_undetected; };
 
-	void addRepair(RepairScheme *repair);
-	virtual void addDomain(FaultDomain *domain);
+	inline
+	void addDomain(FaultDomain *domain)
+	{
+		m_children.push_back(domain);
+	}
 
+	inline
+	void addRepair(RepairScheme *repair)
+	{
+		m_repairSchemes.push_back(repair);
+	}
+
+	inline
 	std::list<FaultDomain *> &getChildren()
 	{
 		return m_children;
 	}
-
 };
 
 

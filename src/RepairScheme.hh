@@ -33,20 +33,25 @@ class GroupDomain;
 
 class RepairScheme
 {
-public:
-	RepairScheme(std::string name);
-	virtual ~RepairScheme() {}
-	std::string getName();
-
-	virtual std::pair<uint64_t, uint64_t> repair(GroupDomain *fd) = 0;
-	virtual uint64_t fill_repl(FaultDomain *fd);
-	virtual void clear_counters() {};
-	virtual void reset() {};
-
-	virtual void printStats();
-
 protected:
 	std::string m_name;
+
+public:
+	RepairScheme(std::string name)
+		: m_name(name)
+	{
+	}
+	virtual ~RepairScheme() {}
+
+	const std::string& getName() const
+	{
+		return m_name;
+	}
+
+	virtual std::pair<uint64_t, uint64_t> repair(GroupDomain *fd) = 0;
+	virtual void reset() = 0;
+
+	virtual void printStats() {}
 };
 
 

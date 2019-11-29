@@ -34,6 +34,7 @@ public:
 	BCHRepair(std::string name, int n_correct, int n_detect, uint64_t deviceBitWidth);
 
 	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	virtual void reset() {};
 
 private:
 	const uint64_t m_n_correct, m_n_detect, m_bitwidth;

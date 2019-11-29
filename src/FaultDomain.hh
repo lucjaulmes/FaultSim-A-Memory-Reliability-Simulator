@@ -93,23 +93,12 @@ public:
 		return std::make_pair(all_faults, all_faults);
 	}
 
-	virtual uint64_t fill_repl() { return 0; }
 	virtual void scrub() = 0;
-	// reset after each sim run
-	virtual void reset() {}
+	/** reset after each sim run */
+	virtual void reset()  = 0;
 	virtual void dumpState() {}
 
-	virtual void resetStats() {}
 	virtual void printStats(uint64_t max_time) = 0;
-
-protected:
-	// 3D memory variables
-	uint64_t cube_model_enable;
-	uint64_t cube_data_tsv;
-	uint64_t enable_tsv;
-
-	bool *tsv_bitmap;
-	uint64_t *tsv_info;
 };
 
 #endif /* FAULTDOMAIN_HH_ */

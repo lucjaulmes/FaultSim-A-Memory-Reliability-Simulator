@@ -32,8 +32,8 @@ CubeRAIDRepair::CubeRAIDRepair(std::string name, uint n_sym_correct, uint n_sym_
 	, m_n_correct(n_sym_correct)
 	, m_n_detect(n_sym_detect)
 	, m_data_block_bits(data_block_bits)
+	, m_log_block_bits(log2(data_block_bits))
 {
-	m_log_block_bits = log2(m_data_block_bits);
 }
 
 std::pair<uint64_t, uint64_t> CubeRAIDRepair::repair(GroupDomain *fd)

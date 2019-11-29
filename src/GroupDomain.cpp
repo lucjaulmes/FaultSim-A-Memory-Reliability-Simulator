@@ -43,24 +43,13 @@ GroupDomain::~GroupDomain()
 	m_children.clear();
 }
 
-void GroupDomain::addDomain(FaultDomain *domain)
-{
-	m_children.push_back(domain);
-}
-
-void GroupDomain::addRepair(RepairScheme *repair)
-{
-	m_repairSchemes.push_back(repair);
-}
-
 void GroupDomain::reset()
 {
-	FaultDomain::reset();
-
 	// reset per-simulation statistics used internally
 	n_faults_transient = n_faults_permanent = 0;
 	// used to indicate whether the domain failed during a single simulation
 	n_errors_undetected = n_errors_uncorrected = 0;
+
 	stat_n_simulations++;
 
 	for (RepairScheme *rs: m_repairSchemes)
@@ -150,32 +139,6 @@ std::pair<uint64_t, uint64_t> GroupDomain::repair()
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
-uint64_t GroupDomain::fill_repl()
-{
-	uint64_t n_uncorrectable = FaultDomain::fill_repl();
-
-	// fill_repl for all children
-
-	for (FaultDomain *fd: m_children)
-		n_uncorrectable += fd->fill_repl();
-
-	// fill_repl myself
-	// default to the number of errors in myself and all children, in case there are no repair schemes
-	n_uncorrectable = getFaultCountPerm() + getFaultCountTrans();
-
-	for (RepairScheme *rs: m_repairSchemes)
-	{
-		uint64_t uncorrectable_after_repair = rs->fill_repl(this);
-		if (n_uncorrectable > uncorrectable_after_repair)
-			n_uncorrectable = uncorrectable_after_repair;
-	}
-
-	if (n_uncorrectable)
-		n_errors_uncorrected++;
-
-	return n_uncorrectable;
-}
-
 void GroupDomain::scrub()
 {
 	// repair all children
@@ -215,10 +178,6 @@ void GroupDomain::finalize()
 
 	if (getFaultCountUncorrected() != 0)
 		stat_n_failures_uncorrected++;
-
-	// clear repair counters
-	for (RepairScheme *rs: m_repairSchemes)
-		rs->clear_counters();
 }
 
 void GroupDomain::printStats(uint64_t sim_seconds)

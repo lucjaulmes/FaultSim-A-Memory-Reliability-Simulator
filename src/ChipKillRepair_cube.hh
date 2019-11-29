@@ -36,6 +36,9 @@ public:
 	ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect, GroupDomain_cube *fd);
 
 	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	void reset() {};
+
+private:
 	std::pair<uint64_t, uint64_t> repair_horizontalTSV(GroupDomain *fd);
 	std::pair<uint64_t, uint64_t> repair_verticalTSV(GroupDomain *fd);
 
@@ -47,7 +50,6 @@ public:
 			return -1;
 	}
 
-private:
 	const uint64_t m_n_correct, m_n_detect;
 	uint32_t logBits, logCols, logRows, banks;
 };

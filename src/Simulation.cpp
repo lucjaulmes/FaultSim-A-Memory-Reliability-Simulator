@@ -113,8 +113,13 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 		uint64_t failures = runOne(max_time, verbose, bin_length);
 		stat_total_sims++;
 
-		uint64_t trans, perm;
-		getFaultCounts(&trans, &perm);
+		uint64_t trans = 0, perm = 0;
+		for (GroupDomain *fd: m_domains)
+		{
+			perm += fd->getFaultCountPerm();
+			trans += fd->getFaultCountTrans();
+		}
+
 		if (failures != 0)
 		{
 			stat_total_failures++;
@@ -291,14 +296,7 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 			continue;
 
 		for (FaultDomain *fd: m_domains)
-		{
 			fd->scrub();
-			if (fd->fill_repl())
-			{
-				finalize();
-				return 1;
-			}
-		}
 	}
 
 	/***********************************************/
@@ -310,21 +308,6 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 		return 1;
 	else
 		return 0;
-}
-
-void Simulation::getFaultCounts(uint64_t *pTrans, uint64_t *pPerm)
-{
-	uint64_t sum_perm = 0;
-	uint64_t sum_trans = 0;
-
-	for (GroupDomain *fd: m_domains)
-	{
-		sum_perm += fd->getFaultCountPerm();
-		sum_trans += fd->getFaultCountTrans();
-	}
-
-	*pTrans = sum_trans;
-	*pPerm = sum_perm;
 }
 
 void Simulation::printStats(uint64_t max_time)

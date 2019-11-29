@@ -34,6 +34,14 @@ class GroupDomain_cube : public GroupDomain
 	/** The burst length per access, this determines the number of TSVs */
 	const uint64_t m_burst_size;
 
+	// 3D memory variables
+	enum { HORIZONTAL, VERTICAL } cube_model;
+	uint64_t cube_data_tsv;
+	uint64_t enable_tsv;
+
+	bool *tsv_bitmap;
+	uint64_t *tsv_info;
+
 	/** Address Decoding Depth */
 	uint64_t m_cube_addr_dec_depth;
 
@@ -56,14 +64,11 @@ class GroupDomain_cube : public GroupDomain
 	random64_engine_t  eng;
 	random_generator_t gen;
 
-	void generateRanges(int faultClass);
 	void generateTSV(bool transient);
 public:
 	GroupDomain_cube(const char *name, unsigned cube_model, uint64_t chips, uint64_t banks, uint64_t burst_length,
 					 uint64_t cube_addr_dec_depth, uint64_t cube_ecc_tsv, uint64_t cube_redun_tsv, bool enable_tsv);
 	~GroupDomain_cube();
-
-	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
 
 	inline
 	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV)
@@ -77,7 +82,7 @@ public:
 	inline
 	bool horizontalTSV()
 	{
-		return cube_model_enable == 1;
+		return cube_model == HORIZONTAL;
 	}
 
 	void addDomain(FaultDomain *domain);

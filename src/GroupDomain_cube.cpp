@@ -32,13 +32,11 @@ GroupDomain_cube::GroupDomain_cube(const char *name, unsigned cube_model, uint64
 								   uint64_t cube_addr_dec_depth, uint64_t cube_ecc_tsv, uint64_t cube_redun_tsv, bool enable_tsv)
 	: GroupDomain(name)
 	, m_chips(chips), m_banks(banks), m_burst_size(burst_size)
+	, cube_model(cube_model == 1 ? HORIZONTAL : VERTICAL), cube_data_tsv(burst_size / 2), enable_tsv(enable_tsv)
 	, m_cube_addr_dec_depth(cube_addr_dec_depth), cube_ecc_tsv(cube_ecc_tsv), cube_redun_tsv(cube_redun_tsv)
 	, tsv_transientFIT(0), tsv_permanentFIT(0)
 	, eng(), gen(eng, random_uniform_t(0, 1))
 {
-	this->cube_data_tsv = burst_size / 2;
-	this->cube_model_enable = cube_model;
-	this->enable_tsv = enable_tsv;
 
 	/* Total number of TSVs in each category.
 	 * Horizontal channel config, assuming 32B (256b) of data: if DDR is used, then we have 512 data bits out
@@ -98,13 +96,8 @@ GroupDomain_cube::~GroupDomain_cube()
 
 void GroupDomain_cube::addDomain(FaultDomain *domain)
 {
-	// propagate 3D mode settings from parent to all children as they are added
-	/* TODO
-	domain->cube_model_enable = cube_model_enable;
-	domain->tsv_bitmap = tsv_bitmap;
-	domain->cube_data_tsv = cube_data_tsv;
-	domain->tsv_info = tsv_info;
-	domain->enable_tsv = enable_tsv;
+	/* TODO:
+	 * hook up domain so that the TSV faults we inject in generateTSV() are affecting these chips.
 	*/
 
 	GroupDomain::addDomain(domain);
@@ -162,13 +155,4 @@ void GroupDomain_cube::generateTSV(bool transient)
 		}
 	}
 */
-}
-
-void GroupDomain_cube::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
-{
-	assert(0);
-}
-
-void GroupDomain_cube::generateRanges(int faultClass)
-{
 }

@@ -22,7 +22,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GROUPDOMAIN_DIMM_HH_
 #define GROUPDOMAIN_DIMM_HH_
 
+#include <iostream>
+
 #include "dram_common.hh"
+
 #include "GroupDomain.hh"
 
 class GroupDomain_dimm : public GroupDomain
@@ -35,6 +38,12 @@ class GroupDomain_dimm : public GroupDomain
 	const uint64_t m_burst_size;
 
 public:
+	virtual void setFIT_TSV(bool transient, double FIT)
+	{
+		std::cerr << "Error: attemting to set TSV FIT on a DIMM" << std::endl;
+		std::abort();
+	};
+
 	GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_length);
 };
 

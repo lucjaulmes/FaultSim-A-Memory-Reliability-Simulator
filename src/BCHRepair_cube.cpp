@@ -32,8 +32,8 @@ BCHRepair_cube::BCHRepair_cube(std::string name, int n_correct, int n_detect, ui
 	, m_n_correct(n_correct)
 	, m_n_detect(n_detect)
 	, m_bitwidth(data_block_bits)
+	, m_log_block_bits(log2(data_block_bits))
 {
-	m_log_block_bits = log2(data_block_bits);
 }
 
 std::pair<uint64_t, uint64_t> BCHRepair_cube::repair(GroupDomain *fd)

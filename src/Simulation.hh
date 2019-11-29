@@ -37,9 +37,7 @@ public:
 	void reset();
 	void finalize();
 	void simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::string output_file);
-	virtual uint64_t runOne(uint64_t max_time, int verbose, uint64_t bin_length);
 	void addDomain(GroupDomain *domain);
-	void getFaultCounts(uint64_t *pTrans, uint64_t *pPerm);
 	void printStats(uint64_t max_time);
 
 protected:
@@ -58,6 +56,8 @@ protected:
 	std::vector<uint64_t> fail_undetectable;
 
 	std::list<GroupDomain *> m_domains;
+
+	virtual uint64_t runOne(uint64_t max_time, int verbose, uint64_t bin_length);
 };
 
 
