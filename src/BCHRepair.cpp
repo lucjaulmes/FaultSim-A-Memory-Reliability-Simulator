@@ -103,20 +103,3 @@ std::pair<uint64_t, uint64_t> BCHRepair::repair(GroupDomain *fd)
 	}
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
-
-uint64_t BCHRepair::fill_repl(GroupDomain *fd)
-{
-	return 0;
-}
-
-void BCHRepair::printStats()
-{
-	RepairScheme::printStats();
-}
-
-void BCHRepair::resetStats()
-{
-	RepairScheme::resetStats();
-}
-
-

@@ -43,10 +43,6 @@ public:
 			<< "% of failures were tolerated, targeting " << (100. * m_protected_fraction) << "%\n";
 		ChipKillRepair::printStats();
 	}
-	void resetStats() {
-		total_failures = tolerated_failures = 0;
-		ChipKillRepair::resetStats();
-	};
 
 	void allow_software_tolerance(std::vector<double> tolerating_probability, std::vector<double> unprotected_tolerating_probability);
 

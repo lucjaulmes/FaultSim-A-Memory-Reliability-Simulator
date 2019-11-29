@@ -41,9 +41,11 @@ Simulation::Simulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test
 	, debug_mode(debug_mode_t)
 	, cont_running(cont_running_t)
 	, m_output_bucket(output_bucket_t)
+	, stat_total_failures(0)
+	, stat_total_corrected(0)
+	, stat_total_sims(0)
+	, stat_sim_seconds(0)
 {
-	m_iteration = 0;    // start at time zero
-
 	if ((m_scrub_interval % m_interval) != 0)
 	{
 		std::cout << "ERROR: Scrub interval must be a multiple of simulation time step interval\n";
@@ -76,19 +78,8 @@ void Simulation::finalize()
 		fd->finalize();
 }
 
-void Simulation::resetStats()
-{
-	stat_total_failures = 0;
-	stat_total_corrected = 0;
-	stat_total_sims = 0;
-	stat_sim_seconds = 0;
-}
-
 void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::string output_file)
 {
-	//Reset Stats before starting any simulation
-	resetStats();
-
 	uint64_t bin_length = m_output_bucket;
 
 	// Max time of simulation in seconds

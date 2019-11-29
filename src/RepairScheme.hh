@@ -25,6 +25,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <tuple>
 #include <string>
+
 #include "FaultDomain.hh"
 
 class GroupDomain;
@@ -43,7 +44,6 @@ public:
 	virtual void reset() {};
 
 	virtual void printStats();
-	virtual void resetStats();
 
 protected:
 	std::string m_name;

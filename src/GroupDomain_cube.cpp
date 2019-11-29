@@ -28,55 +28,45 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern struct Settings settings;
 
-GroupDomain_cube::GroupDomain_cube(const char *name, uint cube_model_t, uint64_t chips_t, uint64_t banks_t,
-    uint64_t burst_size_t, uint64_t cube_addr_dec_depth_t, uint64_t cube_ecc_tsv_t, uint64_t cube_redun_tsv_t,
-    bool enable_tsv_t) : GroupDomain(name)
-	, eng()
-	, gen(eng, random_uniform_t(0, 1))
+GroupDomain_cube::GroupDomain_cube(const char *name, unsigned cube_model, uint64_t chips, uint64_t banks, uint64_t burst_size,
+								   uint64_t cube_addr_dec_depth, uint64_t cube_ecc_tsv, uint64_t cube_redun_tsv, bool enable_tsv)
+	: GroupDomain(name)
+	, m_chips(chips), m_banks(banks), m_burst_size(burst_size)
+	, m_cube_addr_dec_depth(cube_addr_dec_depth), cube_ecc_tsv(cube_ecc_tsv), cube_redun_tsv(cube_redun_tsv)
+	, tsv_transientFIT(0), tsv_permanentFIT(0)
+	, eng(), gen(eng, random_uniform_t(0, 1))
 {
-	//Register Cube Model
-	cube_model_enable = cube_model_t;
-	cube_addr_dec_depth = cube_addr_dec_depth_t; //Address Decoding Depth
+	this->cube_data_tsv = burst_size / 2;
+	this->cube_model_enable = cube_model;
+	this->enable_tsv = enable_tsv;
 
-	//Check if TSVs need to be enabled for Fault Modelling
-	enable_tsv = enable_tsv_t;
+	/* Total number of TSVs in each category.
+	 * Horizontal channel config, assuming 32B (256b) of data: if DDR is used, then we have 512 data bits out
+	 * Vertical channel config, assuming 16B (128b) of data: there are ~20 (16 data + maybe 4 ECC) TSVs per bank.
+	 * If DDR is used and in 8 bursts, we will get 256 bits out for vertical channel config.
+	 * */
 
-	//Params to figure out the number of TSVs in the chip
-	chips = chips_t;
-	banks = banks_t;
-	burst_size = burst_size_t;
-
-	/**************************************************/
-	//Total number of TSVs in each category
-	cube_ecc_tsv = cube_ecc_tsv_t;
-	cube_redun_tsv = cube_redun_tsv_t;
-	/*Assuming 32Bytes of DATA, we get 32*8 = 256 data bits out. If DDR is used, then we have 512 data bits out for horizontal channel config. Assuming 16Bytes of DATA, we get 16*8 = 128 data bits out. There are ~20 (16 Data Value + 4 ECC - may be) TSVs for Data per bank. If DDR is used and in 8 bursts, we will get 256 bits out for vertical channel config*/
-	cube_data_tsv = burst_size / 2; // (DDR)
-
-	/**************************************************/
-	// Compute the number of Address TSVs required for each depth
 	// DR DEBUG: this is wrong - also get chip size from the DRAMDomains
 	total_addr_tsv = 0;
 
-	if (cube_model_enable == 1)
+	if (horizontalTSV())
 	{
 		// Horizontal Channels
 		// The total TSVs per bank will be equal to this number, divided by
 		// (number of banks + ecc per bank + data burst TSVs + ecc for data + redundant tsv)
 		total_tsv = (total_addr_tsv + cube_ecc_tsv + cube_redun_tsv + cube_data_tsv) * chips;
-
-		tsv_bitmap = new bool[(total_addr_tsv + cube_ecc_tsv + cube_redun_tsv + cube_data_tsv)*chips]();
-		tsv_info = new uint64_t[(total_addr_tsv + cube_ecc_tsv + cube_redun_tsv + cube_data_tsv)*chips]();
 		tsv_shared_accross_chips = false;
 	}
-	else    //Vertical Channels
+	else
 	{
+		// Vertical Channels
 		total_tsv = (total_addr_tsv + cube_redun_tsv) * chips + (cube_ecc_tsv + cube_data_tsv) * banks;
-		tsv_bitmap = new bool[(total_addr_tsv + cube_redun_tsv)*chips + (cube_ecc_tsv + cube_data_tsv)*banks]();
-		tsv_info = new uint64_t[(total_addr_tsv + cube_redun_tsv)*chips + (cube_ecc_tsv + cube_data_tsv)*banks]();
 		tsv_shared_accross_chips = true;
 	}
-	/**************************************************/
+
+	tsv_bitmap = new bool[total_tsv]();
+	tsv_info = new uint64_t[total_tsv]();
+
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	gen.engine().seed(tv.tv_sec * 1000000 + (tv.tv_usec));
@@ -109,11 +99,13 @@ GroupDomain_cube::~GroupDomain_cube()
 void GroupDomain_cube::addDomain(FaultDomain *domain)
 {
 	// propagate 3D mode settings from parent to all children as they are added
+	/* TODO
 	domain->cube_model_enable = cube_model_enable;
 	domain->tsv_bitmap = tsv_bitmap;
 	domain->cube_data_tsv = cube_data_tsv;
 	domain->tsv_info = tsv_info;
 	domain->enable_tsv = enable_tsv;
+	*/
 
 	GroupDomain::addDomain(domain);
 }
@@ -175,11 +167,6 @@ void GroupDomain_cube::generateTSV(bool transient)
 void GroupDomain_cube::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
 {
 	assert(0);
-}
-
-void GroupDomain_cube::setFIT_TSV(bool tsv_isTransient, double FIT_TSV)
-{
-	FaultDomain::setFIT_TSV(tsv_isTransient, FIT_TSV);
 }
 
 void GroupDomain_cube::generateRanges(int faultClass)

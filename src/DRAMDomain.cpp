@@ -349,8 +349,3 @@ void DRAMDomain::printStats(uint64_t max_time)
 			std::cout << fr->toString() << '\n';
 	}
 }
-
-void DRAMDomain::resetStats()
-{
-	FaultDomain::resetStats();
-}

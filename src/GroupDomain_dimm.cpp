@@ -25,10 +25,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <sys/time.h>
 
-GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t banks_t, uint64_t burst_size_t)
+GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_size)
 	: GroupDomain(name)
+	, m_chips(chips), m_banks(banks), m_burst_size(burst_size)
 {
-	chips = chips_t; // Total Chips in a DIMM
-	banks = banks_t; // Total Banks per Chip
-	burst_size = burst_size_t; // The burst length per access, this determines the number of TSVs or number of DATA pins coming out of a Chip in a DIMM
 }

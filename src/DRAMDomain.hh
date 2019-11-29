@@ -50,10 +50,8 @@ public:
 		countFault(fr->transient);
 	}
 
-
 	void dumpState();
 	void printStats(uint64_t max_time);
-	void resetStats();
 
 	// based on a fault, create the range of all faulty addresses
 	void generateRanges(fault_class_t faultClass, bool transient);
@@ -96,6 +94,9 @@ protected:
 	inline uint32_t getFieldSize() { return m_logsize[F]; }
 
 	template <enum field F>
+	inline uint32_t hasField(uint64_t wildmask) { return m_mask[F] != 0 && (wildmask & m_mask[F]) != m_mask[F]; }
+
+	template <enum field F>
 	inline uint32_t getField(uint64_t address) { return (address & m_mask[F]) >> m_shift[F]; }
 
 	template <enum field F>
@@ -110,6 +111,12 @@ public:
 	inline uint32_t getLogRows () { return getFieldSize<ROWS>(); }
 	inline uint32_t getLogBanks() { return getFieldSize<BANKS>(); }
 	inline uint32_t getLogRanks() { return getFieldSize<RANKS>(); }
+
+	inline uint32_t hasBits (uint64_t mask) { return hasField<BITS>(mask); }
+	inline uint32_t hasCols (uint64_t mask) { return hasField<COLS>(mask); }
+	inline uint32_t hasRows (uint64_t mask) { return hasField<ROWS>(mask); }
+	inline uint32_t hasBanks(uint64_t mask) { return hasField<BANKS>(mask); }
+	inline uint32_t hasRanks(uint64_t mask) { return hasField<RANKS>(mask); }
 
 	inline uint32_t getBits (uint64_t address) { return getField<BITS>(address); }
 	inline uint32_t getCols (uint64_t address) { return getField<COLS>(address); }

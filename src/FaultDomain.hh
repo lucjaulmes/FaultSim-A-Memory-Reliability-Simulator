@@ -55,10 +55,6 @@ public:
 	FaultDomain(const char *name)
 		: m_name(name), debug(false)
 	{
-		tsv_transientFIT = 0;
-		tsv_permanentFIT = 0;
-		cube_model_enable = 0;
-		cube_addr_dec_depth = 0;
 	}
 
 	inline
@@ -92,7 +88,7 @@ public:
 	inline
 	virtual std::pair<uint64_t, uint64_t> repair()
 	{
-		// In the absence of repair schemes, all faults are undetected uncorrected
+		// In the absence of repair schemes, all faults are undetected and uncorrected
 		uint64_t all_faults = n_faults_transient + n_faults_permanent;
 		return std::make_pair(all_faults, all_faults);
 	}
@@ -104,46 +100,16 @@ public:
 	virtual void dumpState() {}
 
 	virtual void resetStats() {}
-	virtual void printStats(uint64_t max_time) = 0; // output end-of-run stats
+	virtual void printStats(uint64_t max_time) = 0;
 
-	inline
-	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV)
-	{
-		if (isTransient_TSV)
-			tsv_transientFIT = FIT_TSV;
-		else
-			tsv_permanentFIT = FIT_TSV;
-	}
-
+protected:
 	// 3D memory variables
 	uint64_t cube_model_enable;
-	bool *tsv_bitmap;
 	uint64_t cube_data_tsv;
-	uint64_t *tsv_info;
 	uint64_t enable_tsv;
 
-	uint64_t cube_addr_dec_depth;
-	double tsv_transientFIT;
-	double tsv_permanentFIT;
-	uint64_t tsv_n_faults_transientFIT_class;
-	uint64_t tsv_n_faults_permanentFIT_class;
-
-	uint64_t chips;
-	uint64_t banks;
-	uint64_t burst_size;
-
-	uint64_t cube_ecc_tsv;
-	uint64_t cube_redun_tsv;
-	uint64_t total_addr_tsv;
-	uint64_t total_tsv;
-	bool tsv_shared_accross_chips;
-	//Static Arrays for ISCA2014
-	uint64_t tsv_swapped_hc[9];
-	uint64_t tsv_swapped_vc[8];
-	uint64_t tsv_swapped_mc[9][8];
-	// End 3D memory variable declaration
-
-	bool visited; // used during graph traversal algorithms
+	bool *tsv_bitmap;
+	uint64_t *tsv_info;
 };
 
 #endif /* FAULTDOMAIN_HH_ */

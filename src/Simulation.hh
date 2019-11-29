@@ -40,12 +40,10 @@ public:
 	virtual uint64_t runOne(uint64_t max_time, int verbose, uint64_t bin_length);
 	void addDomain(GroupDomain *domain);
 	void getFaultCounts(uint64_t *pTrans, uint64_t *pPerm);
-	void resetStats();
 	void printStats(uint64_t max_time);
 
 protected:
 	uint64_t m_interval;
-	uint64_t m_iteration;
 	uint64_t m_scrub_interval;
 	uint    test_mode;
 	bool debug_mode;

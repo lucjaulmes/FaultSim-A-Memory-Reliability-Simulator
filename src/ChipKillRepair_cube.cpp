@@ -40,7 +40,8 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(GroupDomain *fd)
 {
 	// Choose the algorithm based on the whether its modelled as vertical channels or horizontal channels
-	if (fd->cube_model_enable == 1)
+
+	if (dynamic_cast<GroupDomain_cube *>(fd)->horizontalTSV())
 		return repair_horizontalTSV(fd);
 	else
 		return repair_verticalTSV(fd);
@@ -218,32 +219,4 @@ std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_verticalTSV(GroupDomai
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	return std::make_pair(n_undetectable, n_uncorrectable);
-}
-
-int64_t ChipKillRepair_cube::getbank_number(FaultRange frTemp)
-{
-	int64_t n_bank_t = 0;
-	int64_t n_bankMask_t = 0;
-	int64_t fAddr = frTemp.fAddr >> (logRows + logCols + logBits);
-	int64_t fWildMask = frTemp.fWildMask >> (logRows + logCols + logBits);
-	n_bankMask_t = fWildMask & (banks - 1);
-	n_bank_t = fAddr & (banks - 1);
-	if (n_bankMask_t == (banks - 1))
-		return -1;
-	return n_bank_t;
-}
-
-uint64_t ChipKillRepair_cube::fill_repl(GroupDomain *fd)
-{
-	return 0;
-}
-
-void ChipKillRepair_cube::printStats()
-{
-	RepairScheme::printStats();
-}
-
-void ChipKillRepair_cube::resetStats()
-{
-	RepairScheme::resetStats();
 }

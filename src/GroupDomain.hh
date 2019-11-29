@@ -52,7 +52,6 @@ public:
 	void reset();
 	void dumpState();
     void printStats(uint64_t max_time);
-    void resetStats();
     uint64_t getFailedSimCount();
 
 	uint64_t getFaultCountTrans();

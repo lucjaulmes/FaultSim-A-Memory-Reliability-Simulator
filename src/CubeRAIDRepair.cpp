@@ -109,20 +109,3 @@ std::pair<uint64_t, uint64_t> CubeRAIDRepair::repair(GroupDomain *fd)
 	}
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
-
-uint64_t CubeRAIDRepair::fill_repl(GroupDomain *fd)
-{
-	return 0;
-}
-
-void CubeRAIDRepair::printStats()
-{
-	RepairScheme::printStats();
-}
-
-void CubeRAIDRepair::resetStats()
-{
-	RepairScheme::resetStats();
-}
-
-

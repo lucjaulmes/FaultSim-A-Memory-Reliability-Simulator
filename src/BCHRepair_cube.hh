@@ -33,11 +33,7 @@ public:
 	// need to know how wide the devices are to determine which bits fall into one codeword
 	// across all the chips
 	BCHRepair_cube(std::string name, int n_correct, int n_detect, uint64_t data_block_bits);
-	uint64_t fill_repl(GroupDomain *fd);
 	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
-
-	void printStats();
-	void resetStats();
 
 private:
 	uint64_t m_n_correct, m_n_detect, m_bitwidth, m_log_block_bits;

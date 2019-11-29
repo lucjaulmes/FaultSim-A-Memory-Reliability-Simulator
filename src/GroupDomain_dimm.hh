@@ -27,6 +27,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class GroupDomain_dimm : public GroupDomain
 {
+	/** Total Chips in a DIMM */
+	const uint64_t m_chips;
+	/** Total Banks per Chip */
+	const uint64_t m_banks;
+	/** The burst length per access, this determines the number of pins coming out of a Chip */
+	const uint64_t m_burst_size;
+
 public:
 	GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_length);
 };

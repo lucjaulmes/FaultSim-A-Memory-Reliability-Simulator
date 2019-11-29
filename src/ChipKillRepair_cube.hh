@@ -27,6 +27,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RepairScheme.hh"
 #include "GroupDomain.hh"
 #include "GroupDomain_cube.hh"
+#include "FaultRange.hh"
+#include "DRAMDomain.hh"
 
 class ChipKillRepair_cube : public RepairScheme
 {
@@ -34,12 +36,17 @@ public:
 	ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect, GroupDomain_cube *fd);
 
 	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
-	uint64_t fill_repl(GroupDomain *fd);
-	void printStats();
-	void resetStats();
 	std::pair<uint64_t, uint64_t> repair_horizontalTSV(GroupDomain *fd);
 	std::pair<uint64_t, uint64_t> repair_verticalTSV(GroupDomain *fd);
-	int64_t getbank_number(FaultRange fr_number);
+
+	inline int64_t getbank_number(FaultRange &fr)
+	{
+		if (fr.m_pDRAM->hasBanks(fr.fWildMask))
+			return fr.m_pDRAM->getBanks(fr.fAddr);
+		else
+			return -1;
+	}
+
 private:
 	const uint64_t m_n_correct, m_n_detect;
 	uint32_t logBits, logCols, logRows, banks;

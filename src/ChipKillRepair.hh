@@ -37,9 +37,7 @@ public:
 	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size = 3);
 
 	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
-	uint64_t fill_repl(GroupDomain *fd);
 	virtual void printStats();
-	virtual void resetStats();
 
 	virtual void allow_software_tolerance(std::vector<double> tolerating_probability);
 

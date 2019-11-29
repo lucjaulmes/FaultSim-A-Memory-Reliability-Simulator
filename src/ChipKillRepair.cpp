@@ -230,11 +230,6 @@ void ChipKillRepair::remove_duplicate_failures(std::list<FaultIntersection> &fai
 	}
 }
 
-uint64_t ChipKillRepair::fill_repl(GroupDomain *fd)
-{
-	return 0;
-}
-
 void ChipKillRepair::printStats()
 {
 	std::cout << "Failure sizes\nsize:symbols:outcome:count\n";
@@ -249,11 +244,4 @@ void ChipKillRepair::printStats()
 	std::cout << std::endl;
 
 	RepairScheme::printStats();
-}
-
-void ChipKillRepair::resetStats()
-{
-	m_failure_sizes.clear();
-
-	RepairScheme::resetStats();
 }

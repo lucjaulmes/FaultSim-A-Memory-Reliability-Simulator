@@ -247,18 +247,6 @@ void GroupDomain::printStats(uint64_t sim_seconds)
 	    << " rate_undet " << undetected_fail_rate << " FIT_undet " << FIT_undet << "\n";
 }
 
-void GroupDomain::resetStats()
-{
-	stat_n_simulations = stat_n_failures = 0;
-	stat_n_failures_undetected = stat_n_failures_uncorrected = 0;
-
-	for (FaultDomain *fd: m_children)
-		fd->resetStats();
-
-	for (RepairScheme *rs: m_repairSchemes)
-		rs->resetStats();
-}
-
 /** This functions returns the lost of fault intersections that intersect at a granularity given by symbol_size, subject to being
  * validated by the predicate.
  *

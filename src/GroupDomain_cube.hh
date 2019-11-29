@@ -27,21 +27,60 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class GroupDomain_cube : public GroupDomain
 {
-public:
-	GroupDomain_cube(const char *name, uint cube_model_t, uint64_t chips_t, uint64_t banks_t, uint64_t burst_length,
-	    uint64_t cube_addr_dec_depth_t, uint64_t cube_ecc_tsv_t, uint64_t cube_redun_tsv_t, bool enable_tsv_t);
-	~GroupDomain_cube();
+	/** Total Chips in a DIMM */
+	const uint64_t m_chips;
+	/** Total Banks per Chip */
+	const uint64_t m_banks;
+	/** The burst length per access, this determines the number of TSVs */
+	const uint64_t m_burst_size;
 
-	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
-	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV);
+	/** Address Decoding Depth */
+	uint64_t m_cube_addr_dec_depth;
 
-	void addDomain(FaultDomain *domain);
-protected:
-	void generateRanges(int faultClass);
-	void generateTSV(bool transient);
+	uint64_t cube_ecc_tsv;
+	uint64_t cube_redun_tsv;
+	uint64_t total_addr_tsv;
+	uint64_t total_tsv;
+	bool tsv_shared_accross_chips;
+	//Static Arrays for ISCA2014
+	uint64_t tsv_swapped_hc[9];
+	uint64_t tsv_swapped_vc[8];
+	uint64_t tsv_swapped_mc[9][8];
+
+
+	double tsv_transientFIT;
+	double tsv_permanentFIT;
+	uint64_t tsv_n_faults_transientFIT_class;
+	uint64_t tsv_n_faults_permanentFIT_class;
 
 	random64_engine_t  eng;
 	random_generator_t gen;
+
+	void generateRanges(int faultClass);
+	void generateTSV(bool transient);
+public:
+	GroupDomain_cube(const char *name, unsigned cube_model, uint64_t chips, uint64_t banks, uint64_t burst_length,
+					 uint64_t cube_addr_dec_depth, uint64_t cube_ecc_tsv, uint64_t cube_redun_tsv, bool enable_tsv);
+	~GroupDomain_cube();
+
+	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
+
+	inline
+	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV)
+	{
+		if (isTransient_TSV)
+			tsv_transientFIT = FIT_TSV;
+		else
+			tsv_permanentFIT = FIT_TSV;
+	}
+
+	inline
+	bool horizontalTSV()
+	{
+		return cube_model_enable == 1;
+	}
+
+	void addDomain(FaultDomain *domain);
 };
 
 

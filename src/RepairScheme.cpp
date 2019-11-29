@@ -26,8 +26,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 RepairScheme::RepairScheme(std::string name)
 {
 	m_name = name;
-
-	resetStats();
 }
 
 uint64_t RepairScheme::fill_repl(FaultDomain *fd)
@@ -36,10 +34,6 @@ uint64_t RepairScheme::fill_repl(FaultDomain *fd)
 }
 
 void RepairScheme::printStats()
-{
-}
-
-void RepairScheme::resetStats()
 {
 }
 
