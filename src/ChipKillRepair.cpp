@@ -43,7 +43,7 @@ void ChipKillRepair::allow_software_tolerance(std::vector<double> tolerating_pro
 	m_swtol = tolerating_probability;
 }
 
-std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> ChipKillRepair::repair(GroupDomain *fd)
 {
 	std::list<FaultIntersection> sdc, due, failures = compute_failure_intersections(fd);
 
@@ -65,8 +65,7 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
 		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNCORRECTED)]++;
 
-		for (FaultRange *fr: fail.intersecting)
-			fr->transient_remove = false;
+		fail.uncorrectable();
 	}
 
 	for (auto fail: sdc)
@@ -74,14 +73,13 @@ std::pair<uint64_t, uint64_t> ChipKillRepair::repair(FaultDomain *fd)
 		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
 		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNDETECTED)]++;
 
-		for (FaultRange *fr: fail.intersecting)
-			fr->transient_remove = false;
+		fail.uncorrectable();
 	}
 
 	return std::make_pair(sdc.size(), due.size());
 }
 
-std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(FaultDomain *fd)
+std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(GroupDomain *fd)
 {
 	std::list<FaultDomain *> &pChips = fd->getChildren();
 	DRAMDomain *dram0 = dynamic_cast<DRAMDomain*>(pChips.front());
@@ -91,11 +89,19 @@ std::list<FaultIntersection> ChipKillRepair::compute_failure_intersections(Fault
 	// Clear out the touched values for all chips
 	for (FaultDomain *chip: pChips)
 		for (FaultRange *fr: dynamic_cast<DRAMDomain*>(chip)->getRanges())
+		{
 			fr->touched = 0;
+
+			if (dynamic_cast<DRAMDomain*>(chip)->maskClass(fr->fWildMask) <= DRAM_1WORD)
+			{
+				// data contiguous
+				// -> corresponding “parity” in 2^floor(log2(rows))..rows ?
+			}
+		}
 
 	// Found failures and a stack to building them through the fault range traversal
 	std::list<FaultIntersection> failures;
-	std::stack<FaultIntersection> error_intersection({FaultIntersection(dram0)});
+	std::stack<FaultIntersection> error_intersection({FaultIntersection()});
 
 	// Perform a DFS of intersecting fault ranges
 	auto chip = pChips.cbegin();
@@ -224,7 +230,7 @@ void ChipKillRepair::remove_duplicate_failures(std::list<FaultIntersection> &fai
 	}
 }
 
-uint64_t ChipKillRepair::fill_repl(FaultDomain *fd)
+uint64_t ChipKillRepair::fill_repl(GroupDomain *fd)
 {
 	return 0;
 }
@@ -250,22 +256,4 @@ void ChipKillRepair::resetStats()
 	m_failure_sizes.clear();
 
 	RepairScheme::resetStats();
-}
-
-void FaultIntersection::intersection(const FaultIntersection &fr)
-{
-	// NB: only works for errors that intersect, meaning that have equal address bits outside of their respective masks
-	fAddr = (fAddr & ~fWildMask) | (fr.fAddr & ~fr.fWildMask);
-	fWildMask &= fr.fWildMask;
-
-	transient_remove = transient = transient || fr.transient;
-	std::copy(fr.intersecting.begin(), fr.intersecting.end(), std::back_inserter(intersecting));
-}
-
-std::string FaultIntersection::toString()
-{
-	std::ostringstream build;
-	build << FaultRange::toString();
-	build << " intersection of " << intersecting.size() << " faults";
-	return build.str();
 }

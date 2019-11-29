@@ -19,21 +19,26 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "DRAMDomain.hh"
-#include "Settings.hh"
-#include "faultsim.hh"
 #include <cmath>
 #include <ctime>
 #include <iostream>
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "GroupDomain.hh"
+#include "Settings.hh"
+#include "faultsim.hh"
+
+#include "DRAMDomain.hh"
+
+
 extern struct Settings settings;
 
-DRAMDomain::DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows,
-    uint32_t n_cols, double weibull_shape_parameter)
+DRAMDomain::DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows,
+					   uint32_t n_cols, double weibull_shape_parameter)
 	: FaultDomain(name)
 	, gen(random64_engine_t(), random_uniform_t(0, 1))
+	, chip_in_rank(id)
     , inv_weibull_shape(1. / weibull_shape_parameter)
 	, m_bitwidth(n_bitwidth)
 	, m_ranks(n_ranks)
@@ -58,11 +63,11 @@ DRAMDomain::DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32
 
 	n_faults_transient_tsv = n_faults_permanent_tsv = 0;
 
-	m_logsize[BITS]  = log2(m_bitwidth);
-	m_logsize[COLS]  = log2(m_cols);
-	m_logsize[ROWS]  = log2(m_rows);
-	m_logsize[BANKS] = log2(m_banks);
-	m_logsize[RANKS] = log2(m_ranks);
+	m_logsize[BITS]  = ceil(log2(m_bitwidth));
+	m_logsize[COLS]  = ceil(log2(m_cols));
+	m_logsize[ROWS]  = ceil(log2(m_rows));
+	m_logsize[BANKS] = ceil(log2(m_banks));
+	m_logsize[RANKS] = ceil(log2(m_ranks));
 
 	m_shift[BITS]  = 0;
 	m_shift[COLS]  = m_logsize[BITS];
@@ -104,9 +109,10 @@ const std::list<FaultRange *> &DRAMDomain::getRanges() const
 	return m_faultRanges;
 }
 
+
 fault_class_t DRAMDomain::maskClass(uint64_t mask)
 {
-	// rank bits set in mask => several ranks affected.
+	// “any rank” set in mask => several ranks affected.
 	// repeat in decreasing hierarchical order.
 	if (m_mask[RANKS] && (mask & m_mask[RANKS]) == m_mask[RANKS])
 		return DRAM_NRANK;
@@ -165,7 +171,7 @@ const char *DRAMDomain::faultClassString(fault_class_t i)
 
 int DRAMDomain::update(uint test_mode_t)
 {
-	int newfault = FaultDomain::update(test_mode_t);
+	int newfault = 0;
 
 	// Insert DRAM die faults
 	for (uint i = 0; i < DRAM_MAX; i++)
@@ -214,7 +220,7 @@ int DRAMDomain::update(uint test_mode_t)
 	// Insert TSV faults
 	if ((cube_model_enable > 0) && enable_tsv)
 	{
-		for (uint ii = (children_counter * cube_data_tsv); ii < ((children_counter + 1) * cube_data_tsv); ii++)
+		for (uint ii = (chip_in_rank * cube_data_tsv); ii < ((chip_in_rank + 1) * cube_data_tsv); ii++)
 		{
 			if (tsv_bitmap[ii] == true)
 			{
@@ -254,12 +260,6 @@ int DRAMDomain::update(uint test_mode_t)
 }
 
 
-std::pair<uint64_t, uint64_t> DRAMDomain::repair()
-{
-	// override the remaining number of uncorrectable faults seen based on repair results
-	return FaultDomain::repair();
-}
-
 bool first_time = 1;
 
 void DRAMDomain::reset()
@@ -285,8 +285,6 @@ void DRAMDomain::dumpState()
 
 void DRAMDomain::scrub()
 {
-	FaultDomain::scrub();
-
 	// delete all transient faults
 	for (auto it = m_faultRanges.begin(); it != m_faultRanges.end(); )
 	{
@@ -326,7 +324,6 @@ inline bool DRAMDomain::fault_in_interval(fault_class_t faultClass, bool transie
 
 void DRAMDomain::init(uint64_t interval, uint64_t sim_seconds)
 {
-	FaultDomain::init(interval, sim_seconds);
 	// one-time initialization scales FIT rates to interval scale
 
 	// For Event Driven sim, use expected values of MTBFs in seconds
@@ -392,37 +389,34 @@ FaultRange *DRAMDomain::genRandomRange(fault_class_t faultClass, bool transient)
 FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col, bool bit, bool transient,
     int64_t rowbit_num, bool isTSV)
 {
-	FaultRange *fr = new FaultRange(this);
-	fr->fAddr = 0;
-	fr->fWildMask = 0;
-	fr->Chip = 0;
-	fr->transient = transient;
-	fr->TSV = isTSV;
-	fr->max_faults = 1; // maximum number of bits covered by FaultRange
+	uint64_t address = 0, wildcard_mask = 0;
+	 // maximum number of bits covered by FaultRange
+	uint64_t max_faults = 1;
+
 
 	// parameter 1 = fixed, 0 = wild
 	if (rank)
-		setRanks(fr->fAddr, eng32() % m_ranks);
+		setRanks(address, eng32() % m_ranks);
 	else
 	{
-		setRanks(fr->fWildMask, m_ranks - 1);
-		fr->max_faults *= m_ranks;
+		setRanks(wildcard_mask, m_ranks - 1);
+		max_faults *= m_ranks;
 	}
 
 	if (bank)
-		setBanks(fr->fAddr, eng32() % m_banks);
+		setBanks(address, eng32() % m_banks);
 	else
 	{
-		setBanks(fr->fWildMask, m_banks - 1);
-		fr->max_faults *= m_banks;
+		setBanks(wildcard_mask, m_banks - 1);
+		max_faults *= m_banks;
 	}
 
 	if (row)
-		setRows(fr->fAddr, eng32() % m_rows);
+		setRows(address, eng32() % m_rows);
 	else
 	{
-		setRows(fr->fWildMask, m_rows - 1);
-		fr->max_faults *= m_rows;
+		setRows(wildcard_mask, m_rows - 1);
+		max_faults *= m_rows;
 	}
 
 	// We're not specifying a specific single bit in a row (TSV fault)
@@ -430,35 +424,34 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 	if (rowbit_num == -1)
 	{
 		if (col)
-			setCols(fr->fAddr, eng32() % m_cols);
+			setCols(address, eng32() % m_cols);
 		else
 		{
-			setCols(fr->fWildMask, m_cols - 1);
-			fr->max_faults *= m_cols;
+			setCols(wildcard_mask, m_cols - 1);
+			max_faults *= m_cols;
 		}
 
 		if (bit)
-			setBits(fr->fAddr, eng32() % m_bitwidth);
+			setBits(address, eng32() % m_bitwidth);
 		else
 		{
-			setBits(fr->fWildMask, m_bitwidth - 1);
-			fr->max_faults *= m_bitwidth;
+			setBits(wildcard_mask, m_bitwidth - 1);
+			max_faults *= m_bitwidth;
 		}
 	}
 	else
 	{
 		// For TSV faults we're specifying a single bit position in the row
 		// so we treat the column and bit fields as a single field
-		fr->fAddr |= (uint64_t)(rowbit_num);
+		address |= (uint64_t)(rowbit_num);
 	}
 
-	return fr;
+
+	return new FaultRange(this, address, wildcard_mask, isTSV, transient, max_faults);
 }
 
 void DRAMDomain::printStats()
 {
-	FaultDomain::printStats();
-
 	std::cout << " Transient: ";
 
 	for (int i = 0; i < DRAM_MAX; i++)

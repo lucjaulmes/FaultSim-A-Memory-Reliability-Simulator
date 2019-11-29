@@ -74,7 +74,20 @@ std::string FaultRange::toString() const
 	return build.str();
 }
 
-void FaultRange::clear()
+void FaultIntersection::intersection(const FaultIntersection &fr)
 {
+	// NB: only works for errors that intersect, meaning that have equal address bits outside of their respective masks
+	fAddr = (fAddr & ~fWildMask) | (fr.fAddr & ~fr.fWildMask);
+	fWildMask &= fr.fWildMask;
+
+	transient_remove = transient = transient || fr.transient;
+	std::copy(fr.intersecting.begin(), fr.intersecting.end(), std::back_inserter(intersecting));
 }
 
+std::string FaultIntersection::toString()
+{
+	std::ostringstream build;
+	build << FaultRange::toString();
+	build << " intersection of " << intersecting.size() << " faults";
+	return build.str();
+}

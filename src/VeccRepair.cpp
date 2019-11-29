@@ -39,7 +39,7 @@ void VeccRepair::allow_software_tolerance(std::vector<double> tolerating_probabi
 	m_unprotected_swtol = unprotected_tolerating_probability;
 }
 
-std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> VeccRepair::repair(GroupDomain *fd)
 {
 	std::list<FaultIntersection> sdc, due, failures = compute_failure_intersections(fd);
 	vecc_tolerate(failures, fd);
@@ -68,8 +68,7 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
 		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNCORRECTED)]++;
 
-		for (FaultRange *fr: fail.intersecting)
-			fr->transient_remove = false;
+		fail.uncorrectable();
 	}
 
 	for (auto fail: sdc)
@@ -77,8 +76,7 @@ std::pair<uint64_t, uint64_t> VeccRepair::repair(FaultDomain *fd)
 		fault_class_t cls = fail.m_pDRAM->maskClass(fail.fWildMask);
 		m_failure_sizes[std::make_tuple(cls, fail.chip_count(), UNDETECTED)]++;
 
-		for (FaultRange *fr: fail.intersecting)
-			fr->transient_remove = false;
+		fail.uncorrectable();
 	}
 
 	return std::make_pair(sdc.size(), due.size());
@@ -107,7 +105,7 @@ void VeccRepair::software_tolerate_failures(std::list<FaultIntersection> &failur
 	}
 }
 
-void VeccRepair::vecc_tolerate(std::list<FaultIntersection> &failures, FaultDomain *fd)
+void VeccRepair::vecc_tolerate(std::list<FaultIntersection> &failures, GroupDomain *fd)
 {
 	std::list<FaultDomain *> &pChips = fd->getChildren();
 	DRAMDomain *dram0 = dynamic_cast<DRAMDomain*>(pChips.front());

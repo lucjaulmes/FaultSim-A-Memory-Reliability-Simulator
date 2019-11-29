@@ -51,7 +51,7 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 
 	// Generate all the fault events that will happen
 	std::vector<std::pair<double, FaultRange *>> q1;
-	for (FaultDomain *fd: m_domains)
+	for (GroupDomain *fd: m_domains)
 		for (FaultDomain *fd: fd->getChildren())
 		{
 			DRAMDomain *pD = dynamic_cast<DRAMDomain *>(fd);
@@ -64,10 +64,7 @@ uint64_t EventSimulation::runOne(uint64_t max_s, int verbose, uint64_t bin_lengt
 							currtime += pD->next_fault_event(fault, transient))
 				{
 					FaultRange *fr = pD->genRandomRange(fault, transient);
-					if (fr->transient)
-						fr->m_pDRAM->n_faults_transient++;
-					else
-						fr->m_pDRAM->n_faults_permanent++;
+					fr->m_pDRAM->countFault(fr->transient);
 
 					q1.push_back(std::make_pair(currtime, fr));
 				}

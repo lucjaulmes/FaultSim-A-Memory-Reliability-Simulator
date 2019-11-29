@@ -26,6 +26,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "FaultDomain.hh"
+#include "GroupDomain.hh"
 
 class Simulation
 {
@@ -38,7 +39,7 @@ public:
 	void finalize();
 	void simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::string output_file);
 	virtual uint64_t runOne(uint64_t max_time, int verbose, uint64_t bin_length);
-	void addDomain(FaultDomain *domain);
+	void addDomain(GroupDomain *domain);
 	void getFaultCounts(uint64_t *pTrans, uint64_t *pPerm);
 	void resetStats();
 	void printStats();   // output end-of-run stats
@@ -59,7 +60,7 @@ protected:
 	std::vector<uint64_t> fail_uncorrectable;
 	std::vector<uint64_t> fail_undetectable;
 
-	std::list<FaultDomain *> m_domains;
+	std::list<GroupDomain *> m_domains;
 };
 
 

@@ -36,7 +36,7 @@ BCHRepair_cube::BCHRepair_cube(std::string name, int n_correct, int n_detect, ui
 	m_log_block_bits = log2(data_block_bits);
 }
 
-std::pair<uint64_t, uint64_t> BCHRepair_cube::repair(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> BCHRepair_cube::repair(GroupDomain *fd)
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 
@@ -135,7 +135,7 @@ std::pair<uint64_t, uint64_t> BCHRepair_cube::repair(FaultDomain *fd)
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
-uint64_t BCHRepair_cube::fill_repl(FaultDomain *fd)
+uint64_t BCHRepair_cube::fill_repl(GroupDomain *fd)
 {
 	return 0;
 }

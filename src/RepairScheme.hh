@@ -27,6 +27,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include "FaultDomain.hh"
 
+class GroupDomain;
+
+
 class RepairScheme
 {
 public:
@@ -34,7 +37,7 @@ public:
 	virtual ~RepairScheme() {}
 	std::string getName();
 
-	virtual std::pair<uint64_t, uint64_t> repair(FaultDomain *fd) = 0;
+	virtual std::pair<uint64_t, uint64_t> repair(GroupDomain *fd) = 0;
 	virtual uint64_t fill_repl(FaultDomain *fd);
 	virtual void clear_counters() {};
 	virtual void reset() {};

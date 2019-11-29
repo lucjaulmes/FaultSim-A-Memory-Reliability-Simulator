@@ -25,18 +25,20 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "RepairScheme.hh"
+#include "GroupDomain.hh"
+#include "GroupDomain_cube.hh"
 
 class ChipKillRepair_cube : public RepairScheme
 {
 public:
-	ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect, FaultDomain *fd);
+	ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect, GroupDomain_cube *fd);
 
-	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
-	uint64_t fill_repl(FaultDomain *fd);
+	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	uint64_t fill_repl(GroupDomain *fd);
 	void printStats();
 	void resetStats();
-	std::pair<uint64_t, uint64_t> repair_hc(FaultDomain *fd);
-	std::pair<uint64_t, uint64_t> repair_vc(FaultDomain *fd);
+	std::pair<uint64_t, uint64_t> repair_hc(GroupDomain *fd);
+	std::pair<uint64_t, uint64_t> repair_vc(GroupDomain *fd);
 	int64_t getbank_number(FaultRange fr_number);
 private:
 	const uint64_t m_n_correct, m_n_detect;

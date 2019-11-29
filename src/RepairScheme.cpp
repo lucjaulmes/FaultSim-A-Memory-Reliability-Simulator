@@ -34,6 +34,7 @@ uint64_t RepairScheme::fill_repl(FaultDomain *fd)
 {
 	return 1;
 }
+
 void RepairScheme::printStats()
 {
 }

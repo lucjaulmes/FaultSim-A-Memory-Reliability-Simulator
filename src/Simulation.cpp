@@ -52,12 +52,12 @@ Simulation::Simulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test
 
 Simulation::~Simulation()
 {
-	for (FaultDomain *fd: m_domains)
+	for (GroupDomain *fd: m_domains)
 		delete fd;
 	m_domains.clear();
 }
 
-void Simulation::addDomain(FaultDomain *domain)
+void Simulation::addDomain(GroupDomain *domain)
 {
 	domain->setDebug(debug_mode);
 	m_domains.push_back(domain);
@@ -65,19 +65,19 @@ void Simulation::addDomain(FaultDomain *domain)
 
 void Simulation::init(uint64_t max_s)
 {
-	for (FaultDomain *fd: m_domains)
+	for (GroupDomain *fd: m_domains)
 		fd->init(m_interval, max_s);
 }
 
 void Simulation::reset()
 {
-	for (FaultDomain *fd: m_domains)
+	for (GroupDomain *fd: m_domains)
 		fd->reset();
 }
 
 void Simulation::finalize()
 {
-	for (FaultDomain *fd: m_domains)
+	for (GroupDomain *fd: m_domains)
 		fd->finalize();
 }
 
@@ -228,7 +228,7 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 	for (uint64_t iter = 0; iter < max_iterations; iter++)
 	{
 		// loop through all fault domains and update
-		for (FaultDomain *fd: m_domains)
+		for (GroupDomain *fd: m_domains)
 		{
 			// Insert Faults Hierarchially: GroupDomain -> Lower Domains -> ..
 			// Since (time between updates) << (Total Running Time), faults can be assumed to be inserted instantaneously
@@ -282,7 +282,7 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 
 		// Check if the time to scrub the domain has arrived
 		if ((iter % scrub_ratio) == 0)
-			for (FaultDomain *fd: m_domains)
+			for (GroupDomain *fd: m_domains)
 			{
 				fd->scrub();
 
@@ -310,7 +310,7 @@ void Simulation::getFaultCounts(uint64_t *pTrans, uint64_t *pPerm)
 	uint64_t sum_perm = 0;
 	uint64_t sum_trans = 0;
 
-	for (FaultDomain *fd: m_domains)
+	for (GroupDomain *fd: m_domains)
 	{
 		sum_perm += fd->getFaultCountPerm();
 		sum_trans += fd->getFaultCountTrans();
@@ -325,7 +325,7 @@ void Simulation::printStats()
 	std::cout << "\n";
 	// loop through all domains and report itemized failures, while aggregating them to calculate overall stats
 
-	for (FaultDomain *fd: m_domains)
+	for (GroupDomain *fd: m_domains)
 		fd->printStats();
 
 	std::cout << "\n";

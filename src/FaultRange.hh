@@ -33,7 +33,30 @@ class DRAMDomain;
 class FaultRange
 {
 public:
+	DRAMDomain *m_pDRAM;
+
+	uint64_t fAddr, fWildMask; // address of faulty range, and bit positions that are wildcards (all values) 
+	bool transient;
+	bool TSV;
+
+	uint64_t max_faults;
+
+	uint64_t touched;
+	uint64_t fault_mode;
+
+	bool transient_remove;
+	bool recent_touched;
+
 	FaultRange(DRAMDomain *pDRAM);
+
+	inline
+	FaultRange(DRAMDomain *pDRAM, uint64_t addr, uint64_t mask, bool is_tsv, bool is_transient, uint64_t nbits)
+		: m_pDRAM(pDRAM)
+		, fAddr(addr), fWildMask(mask), transient(is_transient), TSV(is_tsv), max_faults(nbits)
+	    , touched(0), fault_mode(0), transient_remove(true), recent_touched(false)
+	{
+	}
+
 	virtual ~FaultRange() {}
 
 	// does this FR intersect with the supplied FR?
@@ -43,31 +66,65 @@ public:
 	bool isTSV();
 	virtual std::string toString() const;   // for debugging
 
-	void clear();
-
-	bool transient;
-	bool TSV;
-
-	uint64_t fAddr, fWildMask; // address of faulty range, and bit positions that are wildcards (all values)
-	uint64_t touched;
-	uint64_t fault_mode;
-
-	bool transient_remove;
-	bool recent_touched;
-
-	uint64_t max_faults;
-	// Chip location of this fault range.
-	uint32_t Chip;
-
-	DRAMDomain *m_pDRAM;
-
 	inline friend std::ostream& operator<< (std::ostream& stream, const FaultRange& fr) {
 		stream << fr.toString();
 		return stream;
 	}
 
+	inline virtual void uncorrectable() {
+		transient_remove = false;
+	}
+
+	inline virtual bool correctable() {
+		return transient && transient_remove;
+	}
+
 private:
+	// Chip location of this fault range.
+	uint32_t Chip;
+
 	std::list<FaultRange> m_children;    // 'smaller' ranges contained within this one
+};
+
+
+class FaultIntersection: public FaultRange
+{
+private:
+	std::vector<FaultRange*> intersecting;
+
+public:
+	// The intersection of 0 faults
+	FaultIntersection() :
+		FaultRange(nullptr, 0ULL, ~0ULL, false, false, 0), intersecting()
+	{
+	}
+
+	// Use FaultRange copy constructor to create the intersection of 1 fault
+	FaultIntersection(FaultRange *fault, uint64_t min_mask):
+		FaultRange(*fault), intersecting()
+	{
+		fAddr &= ~min_mask;
+		fWildMask |= min_mask;
+		intersecting.push_back(fault);
+	}
+
+	// Each FaultRange represents chip with intersecting errors
+	size_t offset = 0;
+	inline size_t chip_count()
+	{
+		return intersecting.size();
+	}
+
+	void intersection(const FaultIntersection &fr);
+
+	void uncorrectable()
+	{
+		transient_remove = false;
+		for (auto &fr: intersecting)
+			fr->uncorrectable();
+	}
+
+	std::string toString();
 };
 
 

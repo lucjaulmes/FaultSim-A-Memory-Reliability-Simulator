@@ -32,13 +32,12 @@ class FaultRange;
 class DRAMDomain : public FaultDomain
 {
 public:
-	DRAMDomain(char *name, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows, uint32_t n_cols,
+	DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows, uint32_t n_cols,
 				double weibull_shape_parameter = 1.);
 
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT);
 	void init(uint64_t interval, uint64_t sim_seconds);
 	int update(uint test_mode_t);   // perform one iteration
-	std::pair<uint64_t, uint64_t> repair();
 	void scrub();
 	virtual void reset();
 
@@ -75,6 +74,7 @@ protected:
 	random_generator_t gen;
 	random32_engine_t eng32;
 
+	unsigned chip_in_rank;
 	uint64_t curr_interval;
 
 	uint64_t n_faults_transient_class[DRAM_MAX];

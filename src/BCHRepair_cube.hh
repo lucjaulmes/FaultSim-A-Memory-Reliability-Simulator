@@ -25,6 +25,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "RepairScheme.hh"
+#include "GroupDomain.hh"
 
 class BCHRepair_cube : public RepairScheme
 {
@@ -32,8 +33,8 @@ public:
 	// need to know how wide the devices are to determine which bits fall into one codeword
 	// across all the chips
 	BCHRepair_cube(std::string name, int n_correct, int n_detect, uint64_t data_block_bits);
-	uint64_t fill_repl(FaultDomain *fd);
-	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
+	uint64_t fill_repl(GroupDomain *fd);
+	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
 
 	void printStats();
 	void resetStats();

@@ -25,8 +25,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ChipKillRepair_cube.hh"
 #include "DRAMDomain.hh"
 
-ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect,
-    FaultDomain *fd) : RepairScheme(name)
+ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, int n_sym_detect, GroupDomain_cube *fd)
+	: RepairScheme(name)
 	, m_n_correct(n_sym_correct)
 	, m_n_detect(n_sym_detect)
 {
@@ -37,7 +37,7 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 	banks = 1 << DRAMchip->getLogBanks();
 }
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(GroupDomain *fd)
 {
 	//Choose the algorithm based on the whether its modelled as vertical channels or horizontal channels
 	if (fd->cube_model_enable == 1)
@@ -47,7 +47,7 @@ std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair(FaultDomain *fd)
 }
 
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_hc(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_hc(GroupDomain *fd)
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	std::list<FaultDomain *> &pChips = fd->getChildren();
@@ -214,7 +214,7 @@ std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_hc(FaultDomain *fd)
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
-std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_vc(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> ChipKillRepair_cube::repair_vc(GroupDomain *fd)
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	return std::make_pair(n_undetectable, n_uncorrectable);
@@ -233,7 +233,7 @@ int64_t ChipKillRepair_cube::getbank_number(FaultRange frTemp)
 	return n_bank_t;
 }
 
-uint64_t ChipKillRepair_cube::fill_repl(FaultDomain *fd)
+uint64_t ChipKillRepair_cube::fill_repl(GroupDomain *fd)
 {
 	return 0;
 }

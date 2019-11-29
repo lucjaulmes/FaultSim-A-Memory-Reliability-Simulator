@@ -29,16 +29,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dram_common.hh"
 #include "RepairScheme.hh"
 #include "FaultRange.hh"
-
-class FaultIntersection;
+#include "GroupDomain.hh"
 
 class ChipKillRepair : public RepairScheme
 {
 public:
 	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size = 3);
 
-	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
-	uint64_t fill_repl(FaultDomain *fd);
+	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	uint64_t fill_repl(GroupDomain *fd);
 	virtual void printStats();
 	virtual void resetStats();
 
@@ -54,48 +53,11 @@ protected:
 	std::map<std::tuple<size_t, size_t, int>, size_t> m_failure_sizes;
 
 	void remove_duplicate_failures(std::list<FaultIntersection> &failures);
-	std::list<FaultIntersection> compute_failure_intersections(FaultDomain *fd);
+	std::list<FaultIntersection> compute_failure_intersections(GroupDomain *fd);
 	virtual void software_tolerate_failures(std::list<FaultIntersection> &failures);
 
 	std::vector<double> m_swtol;
 	random_generator_t gen;
-};
-
-
-class FaultIntersection: public FaultRange
-{
-public:
-	std::vector<FaultRange*> intersecting;
-
-	// The intersection of 0 faults
-	FaultIntersection(DRAMDomain *pDRAM) :
-		FaultRange(pDRAM), intersecting()
-	{
-		fAddr = 0ULL;
-		fWildMask = ~0ULL;
-		transient = false;
-		transient_remove = false;
-	}
-
-	// Use FaultRange copy constructor to create the intersection of 1 fault
-	FaultIntersection(FaultRange *fault, uint64_t min_mask):
-		FaultRange(*fault), intersecting()
-	{
-		fAddr &= ~min_mask;
-		fWildMask |= min_mask;
-		intersecting.push_back(fault);
-	}
-
-	// Each FaultRange represents chip with intersecting errors
-	size_t offset = 0;
-	inline size_t chip_count()
-	{
-		return intersecting.size();
-	}
-
-	void intersection(const FaultIntersection &fr);
-
-	std::string toString();
 };
 
 #endif /* CHIPKILLREPAIR_HH_ */

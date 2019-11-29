@@ -41,7 +41,7 @@ GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips_t, uint64_t 
 
 int GroupDomain_dimm::update(uint test_mode_t)
 {
-	return FaultDomain::update(test_mode_t);
+	return GroupDomain::update(test_mode_t);
 }
 
 void GroupDomain_dimm::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
@@ -50,10 +50,9 @@ void GroupDomain_dimm::setFIT(fault_class_t faultClass, bool isTransient, double
 
 void GroupDomain_dimm::init(uint64_t interval, uint64_t max_s)
 {
-	FaultDomain::init(interval, max_s);
+	GroupDomain::init(interval, max_s);
 }
 
 void GroupDomain_dimm::generateRanges(int faultClass)
 {
-
 }

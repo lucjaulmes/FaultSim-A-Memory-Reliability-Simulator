@@ -19,9 +19,11 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <iostream>
 #include <string>
 
 #include "BCHRepair.hh"
+#include "GroupDomain.hh"
 #include "DRAMDomain.hh"
 
 BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t deviceBitWidth) : RepairScheme(name)
@@ -29,9 +31,26 @@ BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t dev
 	, m_n_detect(n_detect)
 	, m_bitwidth(deviceBitWidth)
 {
+	// word mask should be 2, 4 and 5 bits respectively
+	assert(m_n_correct + 1 == m_n_detect);
+
+	if (m_n_correct == 1)
+		// SECDED => ECC computed at 8B granularity => group by 4 locations per chip
+		m_word_mask = 1ULL << 2;
+	else if (m_n_correct == 3)
+		// 3EC4ED => ECC computed at 32B granularity => group by 16 locations per chip
+		m_word_mask = 1ULL << 4;
+	else if (m_n_correct == 6)
+		// 6EC7ED => ECC computed at 64B granularity => group by 32 locations per chip
+		m_word_mask = 1ULL << 5;
+	else
+	{
+		std::cerr << "BCH " << n_correct << "EC" << n_detect << "ED" << " not implemented!" << std::endl;
+		std::abort();
+	}
 }
 
-std::pair<uint64_t, uint64_t> BCHRepair::repair(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> BCHRepair::repair(GroupDomain *fd)
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 
@@ -39,88 +58,53 @@ std::pair<uint64_t, uint64_t> BCHRepair::repair(FaultDomain *fd)
 	// Similar to ChipKill except that only 1 bit can be bad across all devices, instead of 1 symbol being bad.
 	std::list<FaultDomain *> &pChips = fd->getChildren();
 
-	for (FaultDomain *fd: pChips)
-		for (FaultRange *fr: dynamic_cast<DRAMDomain*>(fd)->getRanges())
-			fr->touched = 0;
-
 	// Take each chip in turn.  For every fault range, compare with all chips including itself, any intersection of
 	// fault range is treated as a fault. if count exceeds correction ability, fail.
 	for (FaultDomain *fd0: pChips)
 	{
-		// For each fault in first chip, query the second chip to see if it has
-		// an intersecting fault range, touched variable tells us about the location being already addressed or not
+		// For each fault in first chip, query the second chip to see if it has an intersecting fault range
 		for (FaultRange *frOrg: dynamic_cast<DRAMDomain *>(fd0)->getRanges())
 		{
 			FaultRange frTemp = *frOrg; // This is a fault location of a chip
 
-			uint32_t n_intersections = 0;
+			// Clear the last few bits to match errors that affect the same ECC word distributed across chips
+			frTemp.fAddr = frTemp.fAddr & ~m_word_mask;
+			frTemp.fWildMask = frTemp.fWildMask | m_word_mask;
 
-			if (frTemp.touched < frTemp.max_faults)
+			// Count the number of bits that are affected
+			uint32_t n_errors = __builtin_popcount(frOrg->fWildMask | m_word_mask);
+
+			// for each other chip including the current one, count number of intersecting faults
+			for (FaultDomain *fd1: pChips)
 			{
-				unsigned bit_shift = 0;
-				if (m_n_correct == 1) // Depending on the scheme, we will need to group the bits
-				{
-					bit_shift = 2;  //SECDED will give ECC every 8 byte granularity, group by 4 locations in the fault range per chip
-				}
-				else if (m_n_correct == 3)
-				{
-					bit_shift = 4;  //3EC4ED will give ECC every 32 byte granularity, group by 16 locations in the fault range per chip
-				}
-				else if (m_n_correct == 6)
-				{
-					bit_shift = 5;  //6EC7ED will give ECC every 64 byte granularity, group by 32 locations in the fault range per chip
-				}
-				else
-					assert(0);
+				// Aggregate erroneous bits for this word in chip fd1
+				uint32_t chip_error_mask = 0;
+				for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(fd1)->getRanges())
+					if (frTemp.intersects(fr1))
+						chip_error_mask |= (fr1->fWildMask & m_word_mask);
 
-				//Clear the last few bits to accomodate the address range
-				frTemp.fAddr = frTemp.fAddr >> bit_shift;
-				frTemp.fAddr = frTemp.fAddr << bit_shift;
-				frTemp.fWildMask = frTemp.fWildMask >> bit_shift;
-				frTemp.fWildMask = frTemp.fWildMask << bit_shift;
-				// This gives me the number of loops for the addresses near the fault range to iterate
-				unsigned loopcount_locations = 1 << bit_shift;
+				n_errors += __builtin_popcount(chip_error_mask);
+			}
 
-				for (unsigned ii = 0; ii < loopcount_locations; ii++)
-				{
-					// for each other chip including the current one, count number of intersecting faults
-					for (FaultDomain *fd1: pChips)
-					{
-						// only iterate on pairs of chips, here fd1 < fd0 always
-						if (fd1 == fd0) break;
 
-						for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(fd1)->getRanges())
-							if (frTemp.intersects(fr1) && (fr1->touched < fr1->max_faults))
-							{
-								// immediately move on to the next chip, we don't care about other ranges
-								n_intersections += 1;
-								break;
-							}
-					}
-
-					frTemp.fAddr = frTemp.fAddr + 1;
-				}
-
-				if (n_intersections > m_n_detect)
-				{
-					n_undetectable += n_intersections - m_n_detect;
-					frOrg->transient_remove = false;
-					return std::make_pair(n_undetectable, n_uncorrectable);
-				}
-				else if (n_intersections > m_n_correct)
-				{
-					n_uncorrectable += n_intersections - m_n_correct;
-					frOrg->transient_remove = false;
-					return std::make_pair(n_undetectable, n_uncorrectable);
-				}
-
+			if (n_errors > m_n_detect)
+			{
+				n_undetectable += n_errors - m_n_detect;
+				frOrg->transient_remove = false;
+				return std::make_pair(n_undetectable, n_uncorrectable);
+			}
+			else if (n_errors > m_n_correct)
+			{
+				n_uncorrectable += n_errors - m_n_correct;
+				frOrg->transient_remove = false;
+				return std::make_pair(n_undetectable, n_uncorrectable);
 			}
 		}
 	}
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
-uint64_t BCHRepair::fill_repl(FaultDomain *fd)
+uint64_t BCHRepair::fill_repl(GroupDomain *fd)
 {
 	return 0;
 }

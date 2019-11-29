@@ -30,46 +30,95 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FaultRange.hh"
 #include "dram_common.hh"
 
-class RepairScheme;
-
 
 class FaultDomain
 {
-public:
-	FaultDomain(const char *name);
-	virtual ~FaultDomain();
+protected:
+	std::string m_name;
+	bool debug;
 
-	std::string getName();
-	uint64_t getFaultCountTrans();
-	uint64_t getFaultCountPerm();
-	uint64_t getFaultCountUncorrected();
-	uint64_t getFaultCountUndetected();
-	uint64_t getFailedSimCount();
+	// per-simulation run statistics
+	uint64_t n_faults_transient;
+	uint64_t n_faults_permanent;
+
+public:
+	inline
+	FaultDomain(const char *name)
+		: m_name(name), debug(false)
+	{
+		tsv_transientFIT = 0;
+		tsv_permanentFIT = 0;
+		cube_model_enable = 0;
+		cube_addr_dec_depth = 0;
+	}
+
+	inline
+	virtual ~FaultDomain() {}
+
+	inline
+	const std::string& getName() const
+	{
+		return m_name;
+	}
+
+	inline
+	void setDebug(bool dbg)
+	{
+		debug = dbg;
+	}
+
+
+	inline
+	virtual uint64_t getFaultCountTrans()
+	{
+		return n_faults_transient;
+	};
+
+	inline
+	virtual uint64_t getFaultCountPerm()
+	{
+		return n_faults_permanent;
+	};
+
+	inline
+	virtual std::pair<uint64_t, uint64_t> repair()
+	{
+		// In the absence of repair schemes, all faults are undetected uncorrected
+		uint64_t all_faults = n_faults_transient + n_faults_permanent;
+		return std::make_pair(all_faults, all_faults);
+	}
+
+	inline
+	void countFault(bool transient)
+	{
+		if (transient)
+			n_faults_transient++;
+		else
+			n_faults_permanent++;
+	}
 
 	// perform one iteration ; Prashant: Changed the update to return a non-void value
-	virtual int update(uint test_mode_t);
-	virtual std::pair<uint64_t, uint64_t> repair();
-	virtual uint64_t fill_repl();
-	virtual void scrub();
-	void addDomain(FaultDomain *domain, uint32_t domaincounter);
-	void addRepair(RepairScheme *repair);
+	virtual int update(uint test_mode_t) = 0;
+	virtual uint64_t fill_repl() { return 0; }
+	virtual void scrub() = 0;
 	// set up before first simulation run
-	virtual void init(uint64_t interval, uint64_t sim_seconds);
-	// accrue simulation-level statistics at end of each sim run
-	virtual void finalize();
+	virtual void init(uint64_t interval, uint64_t sim_seconds) = 0;
 	// reset after each sim run
-	virtual void reset();
-	virtual void dumpState();
-	void setDebug(bool dbg);
-	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV);
-	void update_cube();
+	virtual void reset() {}
+	virtual void dumpState() {}
 
-	std::list<FaultDomain *> &getChildren();
-	virtual void resetStats();
-	virtual void printStats(); // output end-of-run stats
+	virtual void resetStats() {}
+	virtual void printStats() {} // output end-of-run stats
 
-	//private:
-	std::string m_name;
+	inline
+	void setFIT_TSV(bool isTransient_TSV, double FIT_TSV)
+	{
+		if (isTransient_TSV)
+			tsv_transientFIT = FIT_TSV;
+		else
+			tsv_permanentFIT = FIT_TSV;
+	}
+
 	//3D memory variables
 	uint64_t cube_model_enable;
 	uint64_t cube_addr_dec_depth;
@@ -88,7 +137,6 @@ public:
 	uint64_t total_addr_tsv;
 	uint64_t total_tsv;
 	bool tsv_shared_accross_chips;
-	uint64_t children_counter;
 	uint64_t enable_tsv;
 	//Static Arrays for ISCA2014
 	uint64_t tsv_swapped_hc[9];
@@ -97,22 +145,6 @@ public:
 	// End 3D memory variable declaration
 
 	bool visited; // used during graph traversal algorithms
-
-	bool debug; // debug mode
-
-	// per-simulation run statistics
-	uint64_t n_faults_transient;
-	uint64_t n_faults_permanent;
-	uint64_t n_errors_uncorrected;
-	uint64_t n_errors_undetected;
-
-	uint64_t m_interval, m_sim_seconds;
-
-	// cross-simulation overall program run statistics
-	uint64_t stat_n_simulations, stat_n_failures, stat_n_failures_undetected, stat_n_failures_uncorrected;
-
-	std::list<FaultDomain *> m_children;
-	std::list<RepairScheme *> m_repairSchemes;
 };
 
 #endif /* FAULTDOMAIN_HH_ */

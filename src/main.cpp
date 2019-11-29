@@ -166,8 +166,8 @@ GroupDomain *genModuleDIMM()
 	{
 		char buf[20];
 		sprintf(buf, "MODULE0.DRAM%d", i);
-		DRAMDomain *dram0 = new DRAMDomain(buf, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
-		    settings.cols);
+		DRAMDomain *dram0 = new DRAMDomain(buf, i, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
+										   settings.cols);
 
 		const bool transient = true;
 		if (settings.faultmode == FM_UNIFORM_BIT)
@@ -202,7 +202,7 @@ GroupDomain *genModuleDIMM()
 		else
 			assert(0);
 
-		dimm0->addDomain(dram0, i);
+		dimm0->addDomain(dram0);
 	}
 
 	//Add the 2D Repair Schemes
@@ -254,7 +254,7 @@ GroupDomain *genModule3D()
 	// Create a stack or a CUBE
 	// settings.data_block_bits is the number of bits per transaction when you create a Cube
 
-	GroupDomain *stack0 = new GroupDomain_cube("MODULE0", 1, settings.chips_per_rank, settings.banks, settings.data_block_bits,
+	GroupDomain_cube *stack0 = new GroupDomain_cube("MODULE0", 1, settings.chips_per_rank, settings.banks, settings.data_block_bits,
 	    settings.cube_addr_dec_depth, settings.cube_ecc_tsv, settings.cube_redun_tsv, settings.enable_tsv);
 
 	//Set FIT rates for TSVs, these are set at the GroupDomain level as these are common to the entire cube
@@ -273,8 +273,8 @@ GroupDomain *genModule3D()
 	{
 		char buf[20];
 		sprintf(buf, "MODULE0.DRAM%d", i);
-		DRAMDomain *dram0 = new DRAMDomain(buf, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
-		    settings.cols);
+		DRAMDomain *dram0 = new DRAMDomain(buf, i, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
+										   settings.cols);
 
 		if (settings.faultmode == FM_UNIFORM_BIT)
 		{
@@ -309,7 +309,7 @@ GroupDomain *genModule3D()
 		else
 			assert(0);
 
-		stack0->addDomain(dram0, i);
+		stack0->addDomain(dram0);
 	}
 
 	if (settings.repairmode == 1)

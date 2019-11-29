@@ -36,7 +36,7 @@ CubeRAIDRepair::CubeRAIDRepair(std::string name, uint n_sym_correct, uint n_sym_
 	m_log_block_bits = log2(m_data_block_bits);
 }
 
-std::pair<uint64_t, uint64_t> CubeRAIDRepair::repair(FaultDomain *fd)
+std::pair<uint64_t, uint64_t> CubeRAIDRepair::repair(GroupDomain *fd)
 {
 	uint64_t n_undetectable = 0, n_uncorrectable = 0;
 	// Repair this module.  Assume 8-bit symbols.
@@ -110,7 +110,7 @@ std::pair<uint64_t, uint64_t> CubeRAIDRepair::repair(FaultDomain *fd)
 	return std::make_pair(n_undetectable, n_uncorrectable);
 }
 
-uint64_t CubeRAIDRepair::fill_repl(FaultDomain *fd)
+uint64_t CubeRAIDRepair::fill_repl(GroupDomain *fd)
 {
 	return 0;
 }

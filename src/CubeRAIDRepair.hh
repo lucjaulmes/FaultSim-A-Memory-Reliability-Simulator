@@ -25,14 +25,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "RepairScheme.hh"
+#include "GroupDomain.hh"
 
 class CubeRAIDRepair : public RepairScheme
 {
 public:
 	CubeRAIDRepair(std::string name, uint n_sym_correct, uint n_sym_detect, uint detect_block_bytes);
 
-	std::pair<uint64_t, uint64_t> repair(FaultDomain *fd);
-	uint64_t fill_repl(FaultDomain *fd);
+	std::pair<uint64_t, uint64_t> repair(GroupDomain *fd);
+	uint64_t fill_repl(GroupDomain *fd);
 	void printStats();
 	void resetStats();
 
