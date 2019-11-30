@@ -269,26 +269,26 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 
 	// parameter 1 = fixed, 0 = wild
 	if (rank)
-		setRanks(address, eng32() % m_ranks);
+		putRanks(address, eng32() % m_ranks);
 	else
 	{
-		setRanks(wildcard_mask, m_ranks - 1);
+		putRanks(wildcard_mask, m_ranks - 1);
 		max_faults *= m_ranks;
 	}
 
 	if (bank)
-		setBanks(address, eng32() % m_banks);
+		putBanks(address, eng32() % m_banks);
 	else
 	{
-		setBanks(wildcard_mask, m_banks - 1);
+		putBanks(wildcard_mask, m_banks - 1);
 		max_faults *= m_banks;
 	}
 
 	if (row)
-		setRows(address, eng32() % m_rows);
+		putRows(address, eng32() % m_rows);
 	else
 	{
-		setRows(wildcard_mask, m_rows - 1);
+		putRows(wildcard_mask, m_rows - 1);
 		max_faults *= m_rows;
 	}
 
@@ -297,18 +297,18 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 	if (rowbit_num == -1)
 	{
 		if (col)
-			setCols(address, eng32() % m_cols);
+			putCols(address, eng32() % m_cols);
 		else
 		{
-			setCols(wildcard_mask, m_cols - 1);
+			putCols(wildcard_mask, m_cols - 1);
 			max_faults *= m_cols;
 		}
 
 		if (bit)
-			setBits(address, eng32() % m_bitwidth);
+			putBits(address, eng32() % m_bitwidth);
 		else
 		{
-			setBits(wildcard_mask, m_bitwidth - 1);
+			putBits(wildcard_mask, m_bitwidth - 1);
 			max_faults *= m_bitwidth;
 		}
 	}

@@ -24,6 +24,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BCHRepair.hh"
 #include "GroupDomain.hh"
+#include "GroupDomain_dimm.hh"
 #include "DRAMDomain.hh"
 
 BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t deviceBitWidth) : RepairScheme(name)
@@ -36,18 +37,19 @@ BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t dev
 
 	if (m_n_correct == 1)
 		// SECDED => ECC computed at 8B granularity => group by 4 locations per chip
-		m_word_mask = 1ULL << 2;
+		m_word_bits = 2;
 	else if (m_n_correct == 3)
 		// 3EC4ED => ECC computed at 32B granularity => group by 16 locations per chip
-		m_word_mask = 1ULL << 4;
+		m_word_bits = 4;
 	else if (m_n_correct == 6)
 		// 6EC7ED => ECC computed at 64B granularity => group by 32 locations per chip
-		m_word_mask = 1ULL << 5;
+		m_word_bits = 5;
 	else
 	{
 		std::cerr << "BCH " << n_correct << "EC" << n_detect << "ED" << " not implemented!" << std::endl;
 		std::abort();
 	}
+	m_word_mask = 1ULL << m_word_bits;
 }
 
 failures_t BCHRepair::repair(GroupDomain *fd)

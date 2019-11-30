@@ -26,9 +26,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 GroupDomain::GroupDomain(const char *name) : FaultDomain(name)
 {
 	// RAW faults in this domain before detection/correction
-	n_faults.transient = n_faults.permanent = 0;
+	n_faults = {0, 0};
 	// Errors after detection/correction
-	n_errors_undetected = n_errors_uncorrected = 0;
+	n_errors = {0, 0};
 }
 
 GroupDomain::~GroupDomain()
@@ -46,9 +46,9 @@ GroupDomain::~GroupDomain()
 void GroupDomain::reset()
 {
 	// reset per-simulation statistics used internally
-	n_faults.transient = n_faults.permanent = 0;
+	n_faults = {0, 0};
 	// used to indicate whether the domain failed during a single simulation
-	n_errors_undetected = n_errors_uncorrected = 0;
+	n_errors = {0, 0};
 
 	stat_n_simulations++;
 
@@ -79,6 +79,8 @@ void GroupDomain::dumpState()
 
 failures_t GroupDomain::repair()
 {
+	prepare();
+
 	uint64_t faults_before_repair = getFaultCount().total();
 	failures_t fail = {0, 0};
 
@@ -99,10 +101,8 @@ failures_t GroupDomain::repair()
 		// so that a scheme can act on the outputs/results of the previous one(s)
 		failures_t after_repair = rs->repair(this);
 
-		if (fail.uncorrected > after_repair.uncorrected)
-			fail.uncorrected = after_repair.uncorrected;
-		if (fail.undetected > after_repair.undetected)
-			fail.undetected = after_repair.undetected;
+		fail.uncorrected = std::min(fail.uncorrected, after_repair.uncorrected);
+		fail.undetected  = std::min(fail.undetected, after_repair.undetected);
 
 		// if any repair happened, dump
 		if (debug)
@@ -118,10 +118,10 @@ failures_t GroupDomain::repair()
 	}
 
 	if (fail.undetected > 0)
-		n_errors_undetected++;
+		n_errors.undetected++;
 
 	if (fail.uncorrected > 0)
-		n_errors_uncorrected++;
+		n_errors.uncorrected++;
 
 	return fail;
 }
@@ -144,14 +144,14 @@ void GroupDomain::finalize()
 			}
 
 	if (failure)
-		stat_n_failures++;
+		stat_total_failures++;
 
 	// Determine per-simulation statistics
-	if (getFaultCountUndetected() != 0)
-		stat_n_failures_undetected++;
+	if (n_errors.undetected != 0)
+		stat_n_failures.undetected++;
 
-	if (getFaultCountUncorrected() != 0)
-		stat_n_failures_uncorrected++;
+	if (n_errors.uncorrected != 0)
+		stat_n_failures.uncorrected++;
 }
 
 
@@ -166,16 +166,16 @@ void GroupDomain::printStats(uint64_t sim_seconds)
 	// TODO: some slightly more advanced stats. At least some variability.
 	double sim_seconds_to_FIT = 3600e9 / sim_seconds;
 
-	double device_fail_rate = ((double)stat_n_failures) / ((double)stat_n_simulations);
+	double device_fail_rate = ((double)stat_total_failures) / ((double)stat_n_simulations);
 	double FIT_raw = device_fail_rate * sim_seconds_to_FIT;
 
-	double uncorrected_fail_rate = ((double)stat_n_failures_uncorrected) / ((double)stat_n_simulations);
+	double uncorrected_fail_rate = ((double)stat_n_failures.uncorrected) / ((double)stat_n_simulations);
 	double FIT_uncorr = uncorrected_fail_rate * sim_seconds_to_FIT;
 
-	double undetected_fail_rate = ((double)stat_n_failures_undetected) / ((double)stat_n_simulations);
+	double undetected_fail_rate = ((double)stat_n_failures.undetected) / ((double)stat_n_simulations);
 	double FIT_undet = undetected_fail_rate * sim_seconds_to_FIT;
 
-	std::cout << "[" << m_name << "] sims " << stat_n_simulations << " failed_sims " << stat_n_failures
+	std::cout << "[" << m_name << "] sims " << stat_n_simulations << " failed_sims " << stat_total_failures
 	    << " rate_raw " << device_fail_rate << " FIT_raw " << FIT_raw
 	    << " rate_uncorr " << uncorrected_fail_rate << " FIT_uncorr " << FIT_uncorr
 	    << " rate_undet " << undetected_fail_rate << " FIT_undet " << FIT_undet << "\n";

@@ -196,13 +196,11 @@ GroupDomain *genModuleDIMM()
 	else if (settings.repairmode == 1)
 	{
 		ChipKillRepair *ck0 = new ChipKillRepair(std::string("CK1"), 1, 2);
-		ck0->allow_software_tolerance(settings.sw_tol);
 		dimm0->addRepair(ck0);
 	}
 	else if (settings.repairmode == 2)
 	{
 		ChipKillRepair *ck0 = new ChipKillRepair(std::string("CK2"), 2, 4);
-		ck0->allow_software_tolerance(settings.sw_tol);
 		dimm0->addRepair(ck0);
 	}
 	else if (settings.repairmode == 3)
@@ -222,12 +220,18 @@ GroupDomain *genModuleDIMM()
 	}
 	else if (settings.repairmode == 6)
 	{
-		VeccRepair *vecc1 = new VeccRepair(std::string("VECC1"), 1, 2, 3, 1, settings.vecc_protection);
+		VeccRepair *vecc1 = new VeccRepair(std::string("VECC1"), 1, 2, 1, settings.vecc_protection);
 		vecc1->allow_software_tolerance(settings.sw_tol, settings.vecc_sw_tol);
 		dimm0->addRepair(vecc1);
 	}
 	else
 		assert(0);
+
+	if (settings.repairmode != 6)
+	{
+		// VECC has software-level tolerance already built-in. For other ECCs add it afterwards.
+		dimm0->addRepair(new SoftwareTolerance(std::string("SWTOL"), settings.sw_tol));
+	}
 
 	return dimm0;
 }

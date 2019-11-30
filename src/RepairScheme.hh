@@ -54,5 +54,4 @@ public:
 	virtual void printStats() {}
 };
 
-
 #endif /* REPAIRSCHEME_HH_ */

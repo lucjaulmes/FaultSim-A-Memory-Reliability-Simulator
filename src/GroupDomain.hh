@@ -32,11 +32,11 @@ class GroupDomain : public FaultDomain
 {
 protected:
 	// cross-simulation overall program run statistics
-	uint64_t stat_n_simulations, stat_n_failures, stat_n_failures_undetected, stat_n_failures_uncorrected;
+	uint64_t stat_n_simulations, stat_total_failures;
+	failures_t stat_n_failures;
 
 	// per-simulation run statistics
-	uint64_t n_errors_uncorrected;
-	uint64_t n_errors_undetected;
+	failures_t n_errors;
 
 	std::list<FaultDomain *> m_children;
 	std::list<RepairScheme *> m_repairSchemes;
@@ -47,16 +47,13 @@ public:
 
 	virtual void setFIT_TSV(bool transient, double FIT) = 0;
 
+	virtual void prepare() = 0;
     failures_t repair();
     void finalize();
 	void reset();
 
 	void dumpState();
     void printStats(uint64_t max_time);
-
-	/** Return faults that intersect across children */
-	std::list<FaultIntersection>
-		intersecting_ranges(unsigned symbol_size, std::function<bool(FaultIntersection&)> predicate);
 
     inline void scrub()
 	{
@@ -86,12 +83,11 @@ public:
 	inline
 	uint64_t getFailedSimCount()
 	{
-		return stat_n_failures;
+		return stat_total_failures;
 	}
 
 	faults_t getFaultCount();
-	inline uint64_t getFaultCountUncorrected() { return n_errors_uncorrected; };
-	inline uint64_t getFaultCountUndetected() { return n_errors_undetected; };
+	inline failures_t getErrorCount() { return n_errors; }
 };
 
 

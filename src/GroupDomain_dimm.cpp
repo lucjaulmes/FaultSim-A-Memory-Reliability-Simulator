@@ -27,12 +27,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GroupDomain_dimm.hh"
 
-GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_size)
-	: GroupDomain(name)
-	, m_chips(chips), m_banks(banks), m_burst_size(burst_size)
-{
-}
-
 /** This functions returns the lost of fault intersections that intersect at a granularity given by symbol_size, subject to being
  * validated by the predicate.
  *
@@ -43,13 +37,23 @@ GroupDomain_dimm::GroupDomain_dimm(const char *name, uint64_t chips, uint64_t ba
  * FaultIntersection is at lest 3.
  */
 
-std::list<FaultIntersection> GroupDomain_dimm::intersecting_ranges(unsigned symbol_size,
+std::list<FaultIntersection>& GroupDomain_dimm::intersecting_ranges(unsigned symbol_size,
 																   std::function<bool(FaultIntersection&)> predicate)
 {
+	if (m_failures_computed)
+	{
+		for (auto it = m_failures.begin(); it != m_failures.end();)
+			if (predicate(*it))
+				++it;
+			else
+				it = m_failures.erase(it);
+
+		return m_failures;
+	}
+
 	const uint64_t symbol_wild_mask = (1ULL << symbol_size) - 1;
 
 	// Found failures and a stack to building them through the fault range traversal
-	std::list<FaultIntersection> failures;
 	std::stack<FaultIntersection> error_intersection({FaultIntersection()});
 
 	// Perform a DFS of intersecting fault ranges
@@ -100,10 +104,61 @@ std::list<FaultIntersection> GroupDomain_dimm::intersecting_ranges(unsigned symb
 		// mark intersecting errors based on how many intersection symbols are affected
 		// NB: for double chipkill we might mark a triple error and a double error containing this triple error
 		if (predicate(intersection))
-			failures.push_back(intersection);
+			m_failures.push_back(intersection);
 
 		error_intersection.pop();
 	}
 
-	return failures;
+	return m_failures;
 }
+
+/* Removes duplicate failures
+void GroupDomain_dimm::failures_stats()
+{
+	if (failures.empty())
+		return;
+
+	failures.sort([] (FaultRange &a, FaultRange &b)
+		{
+			return std::make_tuple(a.outcome, a.fAddr, a.fAddr | a.fWildMask) < std::make_tuple(b.outcome, b.fAddr, b.fAddr | b.fWildMask);
+		});
+
+	for (auto it = failures.begin(), nx = std::next(it); nx != failures.end(); )
+	{
+		uint64_t it_start = it->fAddr, it_end = (it_start | it->fWildMask) + 1; // it = {}
+		uint64_t nx_start = nx->fAddr, nx_end = (nx_start | nx->fWildMask) + 1; // nx = ()
+
+		// from sorting
+		assert (it_start <= nx_start);
+
+		if (it->outcome != nx->outcome || it_end <= nx_start)
+			// disjoint case it_start < it_end ≤ nx_start < nx_end { } ( )  , move on.
+			++nx, ++it;
+		else if (it_end >= nx_end)
+			// fully overlapping it_start ≤ nx_start ≤ nx_end ≤ it_end { ( ) }
+			nx = failures.erase(nx);
+		else if (it_start == nx_start)
+		{
+			// fully overlapping it_start = nx_start ≤ it_end < nx_end  [({]  } )
+			it = failures.erase(it);
+			nx = std::next(it);
+		}
+		else
+		{
+			// annoying overlap: it_start < nx_start < it_end < nx_end { ( } )
+			// Typically 2 columns in the same bank. If not, print a warning.
+			if (! (it->m_pDRAM->maskClass(it->fWildMask) == DRAM_1COL && nx->m_pDRAM->maskClass(nx->fWildMask) == DRAM_1COL
+						&& it->m_pDRAM->getRanks(it->fWildMask) == nx->m_pDRAM->getRanks(nx->fWildMask)
+						&& it->m_pDRAM->getBanks(it->fWildMask) == nx->m_pDRAM->getBanks(nx->fWildMask)
+				  ))
+				std::cout << "\nWARNING: unexpected partial overlap between ranges " << std::showbase << std::hex
+					<< it_start << " | " << it->fWildMask << " -> " << it_end - 1 << " and "
+					<< nx_start << " | " << nx->fWildMask << " -> " << nx_end - 1 << std::dec
+					<< "\n  " << *it << "\n  " << *nx << std::endl;
+
+			// Unsure masks can be combined, continue
+			++nx, ++it;
+		}
+	}
+}
+*/

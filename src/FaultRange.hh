@@ -36,7 +36,7 @@ class FaultRange
 public:
 	DRAMDomain *m_pDRAM;
 
-	uint64_t fAddr, fWildMask; // address of faulty range, and bit positions that are wildcards (all values) 
+	uint64_t fAddr, fWildMask; // address of faulty range, and bit positions that are wildcards (all values)
 	bool transient;
 	bool TSV;
 
@@ -72,11 +72,13 @@ public:
 		return stream;
 	}
 
-	inline virtual void uncorrectable() {
+	inline virtual
+	void mark_uncorrectable() {
 		transient_remove = false;
 	}
 
-	inline virtual bool correctable() {
+	inline virtual
+	bool scrub_candidate() {
 		return transient && transient_remove;
 	}
 
@@ -93,36 +95,75 @@ class FaultIntersection: public FaultRange
 private:
 	std::vector<FaultRange*> intersecting;
 
+	enum { CORRECTED = 0, UNCORRECTED, UNDETECTED } outcome;
+
 public:
 	// The intersection of 0 faults
 	FaultIntersection() :
-		FaultRange(nullptr, 0ULL, ~0ULL, false, false, 0), intersecting()
+		FaultRange(nullptr, 0ULL, ~0ULL, false, false, 0), intersecting(), outcome(CORRECTED)
 	{
 	}
 
 	// Use FaultRange copy constructor to create the intersection of 1 fault
 	FaultIntersection(FaultRange *fault, uint64_t min_mask):
-		FaultRange(*fault), intersecting()
+		FaultRange(*fault), intersecting(), outcome(UNDETECTED)
 	{
 		fAddr &= ~min_mask;
 		fWildMask |= min_mask;
 		intersecting.push_back(fault);
 	}
 
+	void intersection(const FaultIntersection &fr);
+
 	// Each FaultRange represents chip with intersecting errors
-	size_t offset = 0;
-	inline size_t chip_count()
+	inline
+	size_t chip_count()
 	{
 		return intersecting.size();
 	}
 
-	void intersection(const FaultIntersection &fr);
-
-	void uncorrectable()
+	inline
+	size_t bit_count()
 	{
+		std::abort();
+	}
+
+	inline
+	void mark_corrected()
+	{
+		outcome = CORRECTED;
+	}
+
+	inline
+	void mark_uncorrectable()
+	{
+		outcome = UNCORRECTED;
+
 		transient_remove = false;
 		for (auto &fr: intersecting)
-			fr->uncorrectable();
+			fr->mark_uncorrectable();
+	}
+
+	inline
+	void mark_undetectable()
+	{
+		outcome = UNDETECTED;
+
+		transient_remove = false;
+		for (auto &fr: intersecting)
+			fr->mark_uncorrectable();
+	}
+
+	inline
+	bool corrected()
+	{
+		return outcome == CORRECTED;
+	}
+
+	inline
+	bool detected()
+	{
+		return outcome != UNDETECTED;
 	}
 
 	std::string toString();

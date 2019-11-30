@@ -50,6 +50,12 @@ public:
 		countFault(fr->transient);
 	}
 
+	inline
+	unsigned get_chip_num() const
+	{
+		return chip_in_rank;
+	}
+
 	void dumpState();
 	void printStats(uint64_t max_time);
 
@@ -100,9 +106,15 @@ protected:
 	inline uint32_t getField(uint64_t address) { return (address & m_mask[F]) >> m_shift[F]; }
 
 	template <enum field F>
-	inline void setField(uint64_t &address, int32_t value)
+	inline void putField(uint64_t &address, int32_t value)
 	{
 		address = (address & ~m_mask[F]) | ((static_cast<uint64_t>(value) << m_shift[F]) & m_mask[F]);
+	}
+
+	template <enum field F>
+	inline uint64_t setField(uint64_t address, int32_t value)
+	{
+		return (address & ~m_mask[F]) | ((static_cast<uint64_t>(value) << m_shift[F]) & m_mask[F]);
 	}
 
 public:
@@ -124,11 +136,17 @@ public:
 	inline uint32_t getBanks(uint64_t address) { return getField<BANKS>(address); }
 	inline uint32_t getRanks(uint64_t address) { return getField<RANKS>(address); }
 
-	inline void setBits (uint64_t &address, uint32_t value) { setField<BITS>(address, value); }
-	inline void setCols (uint64_t &address, uint32_t value) { setField<COLS>(address, value); }
-	inline void setRows (uint64_t &address, uint32_t value) { setField<ROWS>(address, value); }
-	inline void setBanks(uint64_t &address, uint32_t value) { setField<BANKS>(address, value); }
-	inline void setRanks(uint64_t &address, uint32_t value) { setField<RANKS>(address, value); }
+	inline void putBits (uint64_t &address, uint32_t value) { putField<BITS>(address, value); }
+	inline void putCols (uint64_t &address, uint32_t value) { putField<COLS>(address, value); }
+	inline void putRows (uint64_t &address, uint32_t value) { putField<ROWS>(address, value); }
+	inline void putBanks(uint64_t &address, uint32_t value) { putField<BANKS>(address, value); }
+	inline void putRanks(uint64_t &address, uint32_t value) { putField<RANKS>(address, value); }
+
+	inline uint64_t setBits (uint64_t address, uint32_t value) { return setField<BITS>(address, value); }
+	inline uint64_t setCols (uint64_t address, uint32_t value) { return setField<COLS>(address, value); }
+	inline uint64_t setRows (uint64_t address, uint32_t value) { return setField<ROWS>(address, value); }
+	inline uint64_t setBanks(uint64_t address, uint32_t value) { return setField<BANKS>(address, value); }
+	inline uint64_t setRanks(uint64_t address, uint32_t value) { return setField<RANKS>(address, value); }
 };
 
 

@@ -34,30 +34,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class ChipKillRepair : public RepairScheme
 {
 public:
-	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect, int log_symbol_size = 3);
+	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect);
 
 	failures_t repair(GroupDomain *fd);
 	virtual void reset() {};
 
-	virtual void printStats();
-
-	virtual void allow_software_tolerance(std::vector<double> tolerating_probability);
-
 protected:
-	static const int CORRECTED    = 1;
-	static const int UNCORRECTED  = 2;
-	static const int UNDETECTED   = 3;
-	static const int SW_TOLERATED = 4;
-
-	const uint64_t m_n_correct, m_n_detect, m_symbol_mask;
-	std::map<std::tuple<size_t, size_t, int>, size_t> m_failure_sizes;
+	const uint64_t m_n_correct, m_n_detect;
 
 	void remove_duplicate_failures(std::list<FaultIntersection> &failures);
 	std::list<FaultIntersection> compute_failure_intersections(GroupDomain *fd);
-	virtual void software_tolerate_failures(std::list<FaultIntersection> &failures);
-
-	std::vector<double> m_swtol;
-	random_generator_t gen;
 };
 
 #endif /* CHIPKILLREPAIR_HH_ */

@@ -38,7 +38,7 @@ public:
 
 private:
 	const uint64_t m_n_correct, m_n_detect, m_bitwidth;
-	uint64_t m_word_mask;
+	uint64_t m_word_bits, m_word_mask;
 };
 
 
