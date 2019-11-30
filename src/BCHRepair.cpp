@@ -54,54 +54,25 @@ BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t dev
 
 failures_t BCHRepair::repair(GroupDomain *fd)
 {
-	failures_t fail = {0, 0};
+	GroupDomain_dimm *dd = dynamic_cast<GroupDomain_dimm *>(fd);
+	auto predicate = [this](FaultIntersection &error) { return error.bit_count(m_word_mask) > m_n_correct; };
 
-	// Repair up to N bit faults in a single row.
-	// Similar to ChipKill except that only 1 bit can be bad across all devices, instead of 1 symbol being bad.
-	std::list<FaultDomain *> &pChips = fd->getChildren();
+	std::list<FaultIntersection>& failures = dd->intersecting_ranges(m_word_bits, predicate);
 
-	// Take each chip in turn.  For every fault range, compare with all chips including itself, any intersection of
-	// fault range is treated as a fault. if count exceeds correction ability, fail.
-	for (FaultDomain *fd0: pChips)
+	failures_t count = {0, 0};
+	for (auto fail: failures)
 	{
-		// For each fault in first chip, query the second chip to see if it has an intersecting fault range
-		for (FaultRange *frOrg: dynamic_cast<DRAMDomain *>(fd0)->getRanges())
+		if (fail.bit_count(m_word_mask) > m_n_detect)
 		{
-			FaultRange frTemp = *frOrg; // This is a fault location of a chip
-
-			// Clear the last few bits to match errors that affect the same ECC word distributed across chips
-			frTemp.fAddr = frTemp.fAddr & ~m_word_mask;
-			frTemp.fWildMask = frTemp.fWildMask | m_word_mask;
-
-			// Count the number of bits that are affected
-			uint32_t n_errors = __builtin_popcount(frOrg->fWildMask | m_word_mask);
-
-			// for each other chip including the current one, count number of intersecting faults
-			for (FaultDomain *fd1: pChips)
-			{
-				// Aggregate erroneous bits for this word in chip fd1
-				uint32_t chip_error_mask = 0;
-				for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(fd1)->getRanges())
-					if (frTemp.intersects(fr1))
-						chip_error_mask |= (fr1->fWildMask & m_word_mask);
-
-				n_errors += __builtin_popcount(chip_error_mask);
-			}
-
-
-			if (n_errors > m_n_detect)
-			{
-				fail.undetected += n_errors - m_n_detect;
-				frOrg->transient_remove = false;
-				return fail;
-			}
-			else if (n_errors > m_n_correct)
-			{
-				fail.uncorrected += n_errors - m_n_correct;
-				frOrg->transient_remove = false;
-				return fail;
-			}
+			fail.mark_undetectable();
+			count.undetected++;
+		}
+		else
+		{
+			fail.mark_uncorrectable();
+			count.uncorrected++;
 		}
 	}
-	return fail;
+
+	return count;
 }

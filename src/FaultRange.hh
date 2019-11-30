@@ -123,9 +123,14 @@ public:
 	}
 
 	inline
-	size_t bit_count()
+	size_t bit_count(size_t word_mask)
 	{
-		std::abort();
+		// for BCH codes, return the number of faults per word
+		size_t wrong_bits = 0;
+		for (auto &fr: intersecting)
+			wrong_bits += __builtin_popcount(fr->fWildMask & word_mask);
+
+		return wrong_bits;
 	}
 
 	inline
