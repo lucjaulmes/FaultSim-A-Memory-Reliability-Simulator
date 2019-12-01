@@ -37,6 +37,7 @@ extern struct Settings settings;
 DRAMDomain::DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows,
 					   uint32_t n_cols, double weibull_shape_parameter)
 	: FaultDomain(name)
+    , n_faults({0})
 	, gen(random64_engine_t(), random_uniform_t(0, 1))
 	, chip_in_rank(id)
     , inv_weibull_shape(1. / weibull_shape_parameter)
@@ -164,6 +165,7 @@ void DRAMDomain::reset()
 		delete fr;
 
 	m_faultRanges.clear();
+    n_faults = {0};
 }
 
 void DRAMDomain::dumpState()

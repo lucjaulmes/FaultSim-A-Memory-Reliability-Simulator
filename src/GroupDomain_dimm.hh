@@ -63,7 +63,7 @@ public:
 
 	/** Return faults that intersect across children */
 	std::list<FaultIntersection>& intersecting_ranges(unsigned symbol_size,
-													  std::function<bool(FaultIntersection&)> predicate = [](auto f){ return true; });
+													  std::function<bool(FaultIntersection&)> predicate = [](auto &f){ return f.chip_count() > 0; });
 
 
 	inline

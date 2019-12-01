@@ -23,12 +23,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <stdlib.h>
 
-GroupDomain::GroupDomain(const char *name) : FaultDomain(name)
+GroupDomain::GroupDomain(const char *name)
+	: FaultDomain(name)
+	, stat_n_simulations(0), stat_total_failures(0)
+	, stat_n_failures({0}), n_errors({0})
 {
-	// RAW faults in this domain before detection/correction
-	n_faults = {0, 0};
-	// Errors after detection/correction
-	n_errors = {0, 0};
 }
 
 GroupDomain::~GroupDomain()
@@ -45,8 +44,6 @@ GroupDomain::~GroupDomain()
 
 void GroupDomain::reset()
 {
-	// reset per-simulation statistics used internally
-	n_faults = {0, 0};
 	// used to indicate whether the domain failed during a single simulation
 	n_errors = {0, 0};
 
@@ -61,7 +58,7 @@ void GroupDomain::reset()
 
 faults_t GroupDomain::getFaultCount()
 {
-	n_faults = {0, 0};
+	faults_t n_faults = {0, 0};
 
 	for (FaultDomain *fd: m_children)
 		n_faults += fd->getFaultCount();

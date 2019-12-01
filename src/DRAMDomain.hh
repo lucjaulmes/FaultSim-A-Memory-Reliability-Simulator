@@ -31,6 +31,9 @@ class FaultRange;
 
 class DRAMDomain : public FaultDomain
 {
+	// per-simulation run statistics
+	faults_t n_faults;
+
 public:
 	DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows, uint32_t n_cols,
 				double weibull_shape_parameter = 1.);
@@ -47,8 +50,18 @@ public:
 	void insertFault(FaultRange *fr)
 	{
 		m_faultRanges.push_back(fr);
-		countFault(fr->transient);
+
+		if (fr->transient)
+			n_faults.transient++;
+		else
+			n_faults.permanent++;
 	}
+
+	inline
+	virtual faults_t getFaultCount()
+	{
+		return n_faults;
+	};
 
 	inline
 	unsigned get_chip_num() const

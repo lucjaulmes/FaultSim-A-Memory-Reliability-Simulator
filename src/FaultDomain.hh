@@ -70,18 +70,6 @@ protected:
 	std::string m_name;
 	bool debug;
 
-	// per-simulation run statistics
-	faults_t n_faults;
-
-	inline
-	void countFault(bool transient)
-	{
-		if (transient)
-			n_faults.transient++;
-		else
-			n_faults.permanent++;
-	}
-
 public:
 	inline
 	FaultDomain(const char *name)
@@ -104,22 +92,19 @@ public:
 		debug = dbg;
 	}
 
-	inline
-	virtual faults_t getFaultCount()
-	{
-		return n_faults;
-	};
+	virtual faults_t getFaultCount() = 0;
 
 	inline
 	virtual failures_t repair()
 	{
 		// In the absence of repair schemes, all faults are undetected and uncorrected
+		faults_t n_faults = getFaultCount();
 		return {n_faults.total(), n_faults.total()};
 	}
 
 	virtual void scrub() = 0;
 	/** reset after each sim run */
-	virtual void reset()  = 0;
+	virtual void reset() = 0;
 	virtual void dumpState() {}
 
 	virtual void printStats(uint64_t max_time) = 0;

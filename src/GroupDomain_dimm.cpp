@@ -50,6 +50,8 @@ std::list<FaultIntersection>& GroupDomain_dimm::intersecting_ranges(unsigned sym
 
 		return m_failures;
 	}
+	else
+		m_failures_computed = true;
 
 	const uint64_t symbol_wild_mask = (1ULL << symbol_size) - 1;
 
