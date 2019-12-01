@@ -52,7 +52,7 @@ void printBanner()
 	std::cout << "# --------------------------------------------------------------------------------\n\n";
 }
 
-struct Settings settings = {0};
+struct Settings settings = {};
 
 int main(int argc, char **argv)
 {
