@@ -24,7 +24,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <iostream>
-#include <map>
+#include <cassert>
 
 #include "dram_common.hh"
 #include "RepairScheme.hh"
@@ -38,14 +38,16 @@ class SoftwareTolerance : public RepairScheme
 {
 protected:
 	std::vector<double> m_swtol;
-	random_generator_t gen;
+
+	mutable std::mt19937_64 gen;
+	std::uniform_real_distribution<double> distribution;
 
 	inline
 	bool try_sw_tolerance(FaultIntersection &error, std::vector<double> swtol)
 	{
 		// TODO: memoize redundant locations
 		fault_class_t cls = error.m_pDRAM->maskClass(error.fWildMask);
-		return /*!it->transient && */ gen() < swtol.at(cls);
+		return /*!it->transient && */ distribution(gen) < swtol.at(cls);
 	}
 
 	inline
@@ -57,7 +59,7 @@ protected:
 public:
 	SoftwareTolerance(std::string name, std::vector<double> tolerating_probability)
 		: RepairScheme(name)
-		, m_swtol(tolerating_probability), gen(random64_engine_t(), random_uniform_t(0, 1))
+		, m_swtol(tolerating_probability), gen(), distribution(0., 1.)
 	{
 		assert(m_swtol.size() == DRAM_MAX);
 	}
@@ -112,7 +114,7 @@ private:
 	uint64_t get_row_address(FaultRange *fr)
 	{
 		DRAMDomain *chip = fr->m_pDRAM;
-		return chip->setCols(chip->setBits(fr->fAddr, 0), 0);
+		return chip->set<Cols>(chip->set<Bits>(fr->fAddr, 0), 0);
 	}
 
 	void vecc_tolerate(std::list<FaultIntersection> &failures, GroupDomain *fd);

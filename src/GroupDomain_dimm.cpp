@@ -21,6 +21,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <stack>
+#include <cassert>
 
 #include "FaultRange.hh"
 #include "DRAMDomain.hh"
@@ -150,8 +151,8 @@ void GroupDomain_dimm::failures_stats()
 			// annoying overlap: it_start < nx_start < it_end < nx_end { ( } )
 			// Typically 2 columns in the same bank. If not, print a warning.
 			if (! (it->m_pDRAM->maskClass(it->fWildMask) == DRAM_1COL && nx->m_pDRAM->maskClass(nx->fWildMask) == DRAM_1COL
-						&& it->m_pDRAM->getRanks(it->fWildMask) == nx->m_pDRAM->getRanks(nx->fWildMask)
-						&& it->m_pDRAM->getBanks(it->fWildMask) == nx->m_pDRAM->getBanks(nx->fWildMask)
+						&& it->m_pDRAM->get<Ranks>(it->fWildMask) == nx->m_pDRAM->get<Ranks>(nx->fWildMask)
+						&& it->m_pDRAM->get<Banks>(it->fWildMask) == nx->m_pDRAM->get<Banks>(nx->fWildMask)
 				  ))
 				std::cout << "\nWARNING: unexpected partial overlap between ranges " << std::showbase << std::hex
 					<< it_start << " | " << it->fWildMask << " -> " << it_end - 1 << " and "

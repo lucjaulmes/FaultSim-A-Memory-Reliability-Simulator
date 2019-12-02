@@ -22,23 +22,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DRAM_COMMON_HH_
 #define DRAM_COMMON_HH_
 
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
-#include <boost/random/variate_generator.hpp>
-#include <ctime>
-#include <sys/time.h>
-
+#include <cstdint>
+#include <iostream>
 
 typedef enum : int { DRAM_1BIT = 0, DRAM_1WORD, DRAM_1COL, DRAM_1ROW, DRAM_1BANK, DRAM_NBANK, DRAM_NRANK, DRAM_MAX } fault_class_t;
-
-// 64-bit random doubles for determining if failure happened
-typedef boost::mt19937_64                     random64_engine_t;    // Mersenne Twister
-typedef boost::random::uniform_real_distribution<double> random_uniform_t;
-typedef boost::random::variate_generator<random64_engine_t, random_uniform_t> random_generator_t;   // Variate generator
-
-// 32-bit random integers for determining fault locations
-typedef boost::mt19937                      random32_engine_t;
-
 
 // Just some counts
 typedef struct faults_t

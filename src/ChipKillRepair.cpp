@@ -20,10 +20,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <string>
-#include <iostream>
-#include <iomanip>
 #include <list>
-#include <stack>
+#include <cassert>
 
 #include "ChipKillRepair.hh"
 #include "DRAMDomain.hh"

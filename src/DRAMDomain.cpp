@@ -20,10 +20,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cmath>
-#include <ctime>
+#include <chrono>
 #include <iostream>
-#include <stdlib.h>
-#include <sys/time.h>
+#include <cassert>
 
 #include "GroupDomain.hh"
 #include "Settings.hh"
@@ -34,65 +33,53 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern struct Settings settings;
 
-DRAMDomain::DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows,
-					   uint32_t n_cols, double weibull_shape_parameter)
+DRAMDomain::DRAMDomain(char *name, unsigned id, uint32_t bitwidth, uint32_t ranks, uint32_t banks, uint32_t rows,
+					   uint32_t cols, double weibull_shape_parameter)
 	: FaultDomain(name)
-    , n_faults({0})
-	, gen(random64_engine_t(), random_uniform_t(0, 1))
+    , n_faults({0}), n_class_faults({{0}}), n_tsv_faults({0})
+	, FIT_rate({{0.}})
 	, chip_in_rank(id)
-    , inv_weibull_shape(1. / weibull_shape_parameter)
-	, m_bitwidth(n_bitwidth)
-	, m_ranks(n_ranks)
-	, m_banks(n_banks)
-	, m_rows(n_rows)
-	, m_cols(n_cols)
+    , weibull_shape(1. / weibull_shape_parameter)
 {
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	gen.engine().seed(tv.tv_sec * 1000000 + (tv.tv_usec));
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	gen.seed(seed);
+	gen32.seed(seed);
 
-	//gettimeofday (&tv, NULL);
-	eng32.seed(tv.tv_sec * 1000000 + (tv.tv_usec));
+	m_size[Bits]  = bitwidth;
+	m_size[Cols]  = cols;
+	m_size[Rows]  = rows;
+	m_size[Banks] = banks;
+	m_size[Ranks] = ranks;
 
-	for (int i = 0; i < DRAM_MAX; i++)
-	{
-		n_faults_transient_class[i] = 0;
-		n_faults_permanent_class[i] = 0;
+	m_logsize[Bits]  = ceil(log2(bitwidth));
+	m_logsize[Cols]  = ceil(log2(cols));
+	m_logsize[Rows]  = ceil(log2(rows));
+	m_logsize[Banks] = ceil(log2(banks));
+	m_logsize[Ranks] = ceil(log2(ranks));
 
-		FIT_rate[i] = {0., 0.};
-	}
+	m_shift[Bits]  = 0;
+	m_shift[Cols]  = m_logsize[Bits];
+	m_shift[Rows]  = m_logsize[Bits] + m_logsize[Cols];
+	m_shift[Banks] = m_logsize[Bits] + m_logsize[Cols] + m_logsize[Rows];
+	m_shift[Ranks] = m_logsize[Bits] + m_logsize[Cols] + m_logsize[Rows] + m_logsize[Banks];
 
-	n_faults_transient_tsv = n_faults_permanent_tsv = 0;
-
-	m_logsize[BITS]  = ceil(log2(m_bitwidth));
-	m_logsize[COLS]  = ceil(log2(m_cols));
-	m_logsize[ROWS]  = ceil(log2(m_rows));
-	m_logsize[BANKS] = ceil(log2(m_banks));
-	m_logsize[RANKS] = ceil(log2(m_ranks));
-
-	m_shift[BITS]  = 0;
-	m_shift[COLS]  = m_logsize[BITS];
-	m_shift[ROWS]  = m_logsize[BITS] + m_logsize[COLS];
-	m_shift[BANKS] = m_logsize[BITS] + m_logsize[COLS] + m_logsize[ROWS];
-	m_shift[RANKS] = m_logsize[BITS] + m_logsize[COLS] + m_logsize[ROWS] + m_logsize[BANKS];
-
-	m_mask[BITS]  = (m_bitwidth - 1) << m_shift[BITS];
-	m_mask[COLS]  = (m_cols     - 1) << m_shift[COLS];
-	m_mask[ROWS]  = (m_rows     - 1) << m_shift[ROWS];
-	m_mask[BANKS] = (m_banks    - 1) << m_shift[BANKS];
-	m_mask[RANKS] = (m_ranks    - 1) << m_shift[RANKS];
+	m_mask[Bits]  = (bitwidth - 1) << m_shift[Bits];
+	m_mask[Cols]  = (cols     - 1) << m_shift[Cols];
+	m_mask[Rows]  = (rows     - 1) << m_shift[Rows];
+	m_mask[Banks] = (banks    - 1) << m_shift[Banks];
+	m_mask[Ranks] = (ranks    - 1) << m_shift[Ranks];
 
 	if (settings.verbose)
 	{
-		double gbits = ((double)(m_ranks * m_banks * m_rows * m_cols * m_bitwidth)) / ((double)1024 * 1024 * 1024);
+		double gbits = ((double)(ranks * banks * rows * cols * bitwidth)) / ((double)1024 * 1024 * 1024);
 
 		std::cout << "# -------------------------------------------------------------------\n";
 		std::cout << "# DRAMDomain(" << m_name << ")\n";
-		std::cout << "# ranks " << m_ranks << "\n";
-		std::cout << "# banks " << m_banks << "\n";
-		std::cout << "# rows " << m_rows << "\n";
-		std::cout << "# cols " << m_cols << "\n";
-		std::cout << "# bitwidth " << m_bitwidth << "\n";
+		std::cout << "# ranks " << ranks << "\n";
+		std::cout << "# banks " << banks << "\n";
+		std::cout << "# rows " << rows << "\n";
+		std::cout << "# cols " << cols << "\n";
+		std::cout << "# bitwidth " << bitwidth << "\n";
 		std::cout << "# gbits " << gbits << "\n";
 		std::cout << "# -------------------------------------------------------------------\n";
 	}
@@ -102,23 +89,23 @@ fault_class_t DRAMDomain::maskClass(uint64_t mask)
 {
 	// “any rank” set in mask => several ranks affected.
 	// repeat in decreasing hierarchical order.
-	if (m_mask[RANKS] && (mask & m_mask[RANKS]) == m_mask[RANKS])
+	if (m_mask[Ranks] && (mask & m_mask[Ranks]) == m_mask[Ranks])
 		return DRAM_NRANK;
 
-	else if (m_mask[BANKS] && (mask & m_mask[BANKS]) == m_mask[BANKS])
+	else if (m_mask[Banks] && (mask & m_mask[Banks]) == m_mask[Banks])
 		return DRAM_NBANK;
 
 	// a bank needs both row and col wildcards to be failed, otherwise it is a row or column failure
-	else if (m_mask[ROWS] && (mask & m_mask[ROWS]) == m_mask[ROWS] && m_mask[COLS] && (mask & m_mask[COLS]) == m_mask[COLS])
+	else if (m_mask[Rows] && (mask & m_mask[Rows]) == m_mask[Rows] && m_mask[Cols] && (mask & m_mask[Cols]) == m_mask[Cols])
 		return DRAM_1BANK;
 
-	else if (m_mask[ROWS] && (mask & m_mask[ROWS]) == m_mask[ROWS])
+	else if (m_mask[Rows] && (mask & m_mask[Rows]) == m_mask[Rows])
 		return DRAM_1COL;
 
-	else if (m_mask[COLS] && (mask & m_mask[COLS]) == m_mask[COLS])
+	else if (m_mask[Cols] && (mask & m_mask[Cols]) == m_mask[Cols])
 		return DRAM_1ROW;
 
-	else if (m_mask[BITS] && (mask & m_mask[BITS]) == m_mask[BITS])
+	else if (m_mask[Bits] && (mask & m_mask[Bits]) == m_mask[Bits])
 		return DRAM_1WORD;
 
 	else
@@ -157,17 +144,6 @@ const char *DRAMDomain::faultClassString(fault_class_t i)
 	return "";
 }
 
-bool first_time = 1;
-
-void DRAMDomain::reset()
-{
-	for (FaultRange *fr: m_faultRanges)
-		delete fr;
-
-	m_faultRanges.clear();
-    n_faults = {0};
-}
-
 void DRAMDomain::dumpState()
 {
 	if (m_faultRanges.size() != 0)
@@ -193,35 +169,6 @@ void DRAMDomain::scrub()
 		else
 			it++;
 	}
-}
-
-void DRAMDomain::setFIT(fault_class_t faultClass, bool isTransient, double FIT)
-{
-	if (isTransient)
-	{
-		FIT_rate[faultClass].transient = FIT;
-		secs_per_fault[faultClass].transient = 3600e9 / FIT;
-	}
-	else
-	{
-		FIT_rate[faultClass].permanent = FIT;
-		secs_per_fault[faultClass].permanent = 3600e9 / FIT;
-	}
-}
-
-double DRAMDomain::next_fault_event(fault_class_t faultClass, bool transient)
-{
-	// with default parameter weibull shape (= 1.) this is an exponential distribution
-	double weibull_random = pow(-log(gen()), inv_weibull_shape);
-	if (transient)
-		return weibull_random * secs_per_fault[faultClass].transient;
-	else
-		return weibull_random * secs_per_fault[faultClass].permanent;
-}
-
-void DRAMDomain::generateRanges(fault_class_t faultClass, bool transient)
-{
-	m_faultRanges.push_back(genRandomRange(faultClass, transient));
 }
 
 FaultRange *DRAMDomain::genRandomRange(fault_class_t faultClass, bool transient)
@@ -271,27 +218,27 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 
 	// parameter 1 = fixed, 0 = wild
 	if (rank)
-		putRanks(address, eng32() % m_ranks);
+		put<Ranks>(address, random<Ranks>());
 	else
 	{
-		putRanks(wildcard_mask, m_ranks - 1);
-		max_faults *= m_ranks;
+		put<Ranks>(wildcard_mask, ~0U);
+		max_faults *= m_size[Ranks];
 	}
 
 	if (bank)
-		putBanks(address, eng32() % m_banks);
+		put<Banks>(address, random<Banks>());
 	else
 	{
-		putBanks(wildcard_mask, m_banks - 1);
-		max_faults *= m_banks;
+		put<Banks>(wildcard_mask, ~0U);
+		max_faults *= m_size[Banks];
 	}
 
 	if (row)
-		putRows(address, eng32() % m_rows);
+		put<Rows>(address, random<Rows>());
 	else
 	{
-		putRows(wildcard_mask, m_rows - 1);
-		max_faults *= m_rows;
+		put<Rows>(wildcard_mask, ~0U);
+		max_faults *= m_size[Rows];
 	}
 
 	// We're not specifying a specific single bit in a row (TSV fault)
@@ -299,19 +246,19 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 	if (rowbit_num == -1)
 	{
 		if (col)
-			putCols(address, eng32() % m_cols);
+			put<Cols>(address, random<Cols>());
 		else
 		{
-			putCols(wildcard_mask, m_cols - 1);
-			max_faults *= m_cols;
+			put<Cols>(wildcard_mask, ~0U);
+			max_faults *= m_size[Cols];
 		}
 
 		if (bit)
-			putBits(address, eng32() % m_bitwidth);
+			put<Bits>(address, random<Bits>());
 		else
 		{
-			putBits(wildcard_mask, m_bitwidth - 1);
-			max_faults *= m_bitwidth;
+			put<Bits>(wildcard_mask, ~0U);
+			max_faults *= m_size[Bits];
 		}
 	}
 	else
@@ -330,17 +277,14 @@ void DRAMDomain::printStats(uint64_t max_time)
 	std::cout << " Transient: ";
 
 	for (int i = 0; i < DRAM_MAX; i++)
-		std::cout << n_faults_transient_class[i] << ' ';
+		std::cout << n_class_faults[i].transient << ' ';
 
-	std::cout << "TSV " << n_faults_transient_tsv;
+	std::cout << "TSV " << n_tsv_faults.transient << " Permanent: ";
 
-	std::cout << " Permanent: ";
 	for (int i = 0; i < DRAM_MAX; i++)
-		std::cout << n_faults_permanent_class[i] << ' ';
+		std::cout << n_class_faults[i].permanent << ' ';
 
-	std::cout << "TSV " << n_faults_permanent_tsv;
-
-	std::cout << '\n';
+	std::cout << "TSV " << n_tsv_faults.permanent << '\n';
 
 	// For extra verbose mode, output list of all fault ranges
 	if (settings.verbose == 2)

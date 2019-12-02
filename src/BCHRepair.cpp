@@ -21,6 +21,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <string>
+#include <cassert>
 
 #include "BCHRepair.hh"
 #include "GroupDomain.hh"

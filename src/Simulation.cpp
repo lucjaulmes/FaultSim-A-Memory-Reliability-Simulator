@@ -24,9 +24,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <stdio.h>
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
+#include <algorithm>
 
 #include "Simulation.hh"
 #include "FaultDomain.hh"

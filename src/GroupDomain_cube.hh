@@ -22,6 +22,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GROUPDOMAIN_CUBE_HH_
 #define GROUPDOMAIN_CUBE_HH_
 
+#include <random>
+
 #include "dram_common.hh"
 #include "GroupDomain.hh"
 
@@ -61,8 +63,8 @@ class GroupDomain_cube : public GroupDomain
 	uint64_t tsv_n_faults_transientFIT_class;
 	uint64_t tsv_n_faults_permanentFIT_class;
 
-	random64_engine_t  eng;
-	random_generator_t gen;
+	std::mt19937_64 gen;
+	std::uniform_int_distribution<uint64_t> tsv_dist;
 
 	void generateTSV(bool transient);
 

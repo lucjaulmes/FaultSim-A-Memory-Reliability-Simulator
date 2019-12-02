@@ -22,6 +22,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <string>
 #include <functional>
+#include <algorithm>
 
 #include "VeccRepair.hh"
 #include "DRAMDomain.hh"
@@ -54,7 +55,7 @@ void VeccRepair::allow_software_tolerance(std::vector<double> tolerating_probabi
 failures_t VeccRepair::repair(FaultDomain *fd)
 {
 	GroupDomain_dimm *dd = dynamic_cast<GroupDomain_dimm *>(fd);
-	assert(dynamic_cast<DRAMDomain*>(dd->getChildren().front())->getLogRanks() > 0);
+	assert(dynamic_cast<DRAMDomain*>(dd->getChildren().front())->getLog<Ranks>() > 0);
 
 	const size_t log2_data_chips = floor(log2(dd->chips()));
 	size_t symbol_bits = floor(log2(dd->burst_size() >> log2_data_chips));
@@ -112,7 +113,7 @@ bool VeccRepair::check_tier2(GroupDomain_dimm *dd, FaultIntersection& error)
 
 	// Get a random location in a (the?) other rank, where the supplementary symbols (tier 2 ECC) for this DRAM row is stored
 	FaultRange *tier2 = chip->genRandomRange(DRAM_1BIT, true);
-	chip->putRanks(tier2->fAddr, chip->getRanks(error.fAddr) + 1);
+	chip->put<Ranks>(tier2->fAddr, chip->get<Ranks>(error.fAddr) + 1);
 
 	// 1 chip = 1 symbol (at least for amount of redundancy purposes) = dd->burst_size() / data_chips
 	const size_t data_chips = 1ULL << static_cast<int>(floor(log2(dd->chips())));

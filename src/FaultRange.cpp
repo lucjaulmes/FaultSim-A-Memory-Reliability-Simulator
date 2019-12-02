@@ -60,17 +60,17 @@ std::string FaultRange::toString() const
 	build << (transient ? "transient" : "permanent") << " TSV " << TSV;
 	build << ' ' << m_pDRAM->faultClassString(m_pDRAM->maskClass(fWildMask));
 
-	build << " fAddr("  << m_pDRAM->getRanks(fAddr)
-				 << ',' << m_pDRAM->getBanks(fAddr)
-				 << ',' << m_pDRAM->getRows(fAddr)
-				 << ',' << m_pDRAM->getCols(fAddr)
-				 << ',' << m_pDRAM->getBits(fAddr) << ')';
+	build << " fAddr("  << m_pDRAM->get<Ranks>(fAddr)
+				 << ',' << m_pDRAM->get<Banks>(fAddr)
+				 << ',' << m_pDRAM->get<Rows>(fAddr)
+				 << ',' << m_pDRAM->get<Cols>(fAddr)
+				 << ',' << m_pDRAM->get<Bits>(fAddr) << ')';
 
-	build << std::hex << " fMask 0x(" << m_pDRAM->getRanks(fWildMask)
-							   << ',' << m_pDRAM->getBanks(fWildMask)
-							   << ',' << m_pDRAM->getRows(fWildMask)
-							   << ',' << m_pDRAM->getCols(fWildMask)
-							   << ',' << m_pDRAM->getBits(fWildMask) << ')';
+	build << std::hex << " fMask 0x(" << m_pDRAM->get<Ranks>(fWildMask)
+							   << ',' << m_pDRAM->get<Banks>(fWildMask)
+							   << ',' << m_pDRAM->get<Rows>(fWildMask)
+							   << ',' << m_pDRAM->get<Cols>(fWildMask)
+							   << ',' << m_pDRAM->get<Bits>(fWildMask) << ')';
 	return build.str();
 }
 

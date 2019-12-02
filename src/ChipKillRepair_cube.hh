@@ -44,8 +44,8 @@ private:
 
 	inline int64_t getbank_number(FaultRange &fr)
 	{
-		if (fr.m_pDRAM->hasBanks(fr.fWildMask))
-			return fr.m_pDRAM->getBanks(fr.fAddr);
+		if (fr.m_pDRAM->has<Banks>(fr.fWildMask))
+			return fr.m_pDRAM->get<Banks>(fr.fAddr);
 		else
 			return -1;
 	}

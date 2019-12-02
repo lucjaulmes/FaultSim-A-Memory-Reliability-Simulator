@@ -21,9 +21,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GroupDomain_cube.hh"
 #include <iostream>
-#include <stdlib.h>
-#include <ctime>
-#include <sys/time.h>
+#include <random>
+#include <chrono>
 #include "Settings.hh"
 
 extern struct Settings settings;
@@ -35,8 +34,10 @@ GroupDomain_cube::GroupDomain_cube(const char *name, unsigned cube_model, uint64
 	, cube_model(cube_model == 1 ? HORIZONTAL : VERTICAL), cube_data_tsv(burst_size / 2), enable_tsv(enable_tsv)
 	, m_cube_addr_dec_depth(cube_addr_dec_depth), cube_ecc_tsv(cube_ecc_tsv), cube_redun_tsv(cube_redun_tsv)
 	, tsv_transientFIT(0), tsv_permanentFIT(0)
-	, eng(), gen(eng, random_uniform_t(0, 1))
+	, gen(), tsv_dist()
 {
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	gen.seed(seed);
 
 	/* Total number of TSVs in each category.
 	 * Horizontal channel config, assuming 32B (256b) of data: if DDR is used, then we have 512 data bits out
@@ -62,12 +63,11 @@ GroupDomain_cube::GroupDomain_cube(const char *name, unsigned cube_model, uint64
 		tsv_shared_accross_chips = true;
 	}
 
+	tsv_dist.param(std::uniform_int_distribution<uint64_t>(0, total_tsv - 1).param());
+	tsv_dist = std::uniform_int_distribution<uint64_t>(0, total_tsv - 1);
+
 	tsv_bitmap = new bool[total_tsv]();
 	tsv_info = new uint64_t[total_tsv]();
-
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	gen.engine().seed(tv.tv_sec * 1000000 + (tv.tv_usec));
 
 	if (settings.verbose)
 	{
@@ -110,7 +110,7 @@ void GroupDomain_cube::generateTSV(bool transient)
 		return;
 
 	// Record the fault and update the info for TSV
-	uint64_t location = eng() % total_tsv;
+	uint64_t location = tsv_dist(gen);
 
 		// only record un-correctable faults for overall simulation success determination
 	if (transient)

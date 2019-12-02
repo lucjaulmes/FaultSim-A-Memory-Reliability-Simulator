@@ -31,10 +31,10 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 	, m_n_detect(n_sym_detect)
 {
 	DRAMDomain *DRAMchip = dynamic_cast<DRAMDomain *>(fd->getChildren().front());
-	logBits = DRAMchip->getLogBits();
-	logCols = DRAMchip->getLogCols();
-	logRows = DRAMchip->getLogRows();
-	banks = 1 << DRAMchip->getLogBanks();
+	logBits = DRAMchip->getLog<Bits>();
+	logCols = DRAMchip->getLog<Cols>();
+	logRows = DRAMchip->getLog<Rows>();
+	banks = 1 << DRAMchip->getLog<Banks>();
 }
 
 failures_t ChipKillRepair_cube::repair(FaultDomain *fd)
