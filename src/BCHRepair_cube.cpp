@@ -24,6 +24,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BCHRepair_cube.hh"
 #include "DRAMDomain.hh"
+#include "GroupDomain_cube.hh"
 #include "Settings.hh"
 
 extern struct Settings settings;
@@ -36,23 +37,24 @@ BCHRepair_cube::BCHRepair_cube(std::string name, int n_correct, int n_detect, ui
 {
 }
 
-failures_t BCHRepair_cube::repair(GroupDomain *fd)
+failures_t BCHRepair_cube::repair(FaultDomain *fd)
 {
 	failures_t fail = {0, 0};
+	GroupDomain_cube *cd = dynamic_cast<GroupDomain_cube *>(fd);
 
 	// Repair up to N bit faults in a single block
-	std::list<FaultDomain *> &pChips = fd->getChildren();
+	std::list<FaultDomain *> &pChips = cd->getChildren();
 	//assert( pChips->size() == (m_n_repair * 18) );
 
-	for (FaultDomain *fd: pChips)
-		for (FaultRange *fr: dynamic_cast<DRAMDomain *>(fd)->getRanges())
+	for (FaultDomain *cd: pChips)
+		for (FaultRange *fr: dynamic_cast<DRAMDomain *>(cd)->getRanges())
 			fr->touched = 0;
 
 	// Take each chip in turn.  For every fault range in a chip, see which neighbors intersect it's ECC block(s).
 	// Count the failed bits in each ECC block.
-	for (FaultDomain *fd: pChips)
+	for (FaultDomain *cd: pChips)
 	{
-		for (FaultRange *frOrg: dynamic_cast<DRAMDomain *>(fd)->getRanges())
+		for (FaultRange *frOrg: dynamic_cast<DRAMDomain *>(cd)->getRanges())
 		{
 			FaultRange frTemp = *frOrg;
 
@@ -73,7 +75,7 @@ failures_t BCHRepair_cube::repair(GroupDomain *fd)
 
 				for (unsigned ii = 0; ii < loopcount_locations; ii++)
 				{
-					for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(fd)->getRanges())
+					for (FaultRange *fr1: dynamic_cast<DRAMDomain *>(cd)->getRanges())
 					{
 						if (settings.debug)
 							std::cout << m_name << ": inner " << fr1->toString() << " bit " << ii << "\n";

@@ -33,7 +33,7 @@ public:
 	// need to know how wide the devices are to determine which bits fall into one codeword across all the chips
 	BCHRepair_cube(std::string name, int n_correct, int n_detect, uint64_t data_block_bits);
 
-	failures_t repair(GroupDomain *fd);
+	failures_t repair(FaultDomain *fd);
 	void reset() {};
 
 private:

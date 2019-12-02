@@ -26,9 +26,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <string>
 
-#include "FaultDomain.hh"
+#include "dram_common.hh"
 
-class GroupDomain;
+class FaultDomain;
 
 
 class RepairScheme
@@ -48,7 +48,7 @@ public:
 		return m_name;
 	}
 
-	virtual failures_t repair(GroupDomain *fd) = 0;
+	virtual failures_t repair(FaultDomain *fd) = 0;
 	virtual void reset() = 0;
 
 	virtual void printStats() {}

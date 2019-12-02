@@ -51,7 +51,7 @@ void VeccRepair::allow_software_tolerance(std::vector<double> tolerating_probabi
 		m_protected_swtol[c] = (m_swtol[c] - m_unprotected_swtol[c] * (1 - m_protected_fraction)) / m_protected_fraction;
 }
 
-failures_t VeccRepair::repair(GroupDomain *fd)
+failures_t VeccRepair::repair(FaultDomain *fd)
 {
 	GroupDomain_dimm *dd = dynamic_cast<GroupDomain_dimm *>(fd);
 	assert(dynamic_cast<DRAMDomain*>(dd->getChildren().front())->getLogRanks() > 0);

@@ -36,7 +36,7 @@ class ChipKillRepair : public RepairScheme
 public:
 	ChipKillRepair(std::string name, int n_sym_correct, int n_sym_detect);
 
-	failures_t repair(GroupDomain *fd);
+	failures_t repair(FaultDomain *fd);
 	virtual void reset() {};
 
 protected:

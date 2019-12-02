@@ -32,13 +32,9 @@ GroupDomain::GroupDomain(const char *name)
 
 GroupDomain::~GroupDomain()
 {
-	for (RepairScheme *rs: m_repairSchemes)
-		delete rs;
-
 	for (FaultDomain *fd: m_children)
 		delete fd;
 
-	m_repairSchemes.clear();
 	m_children.clear();
 }
 
@@ -49,11 +45,10 @@ void GroupDomain::reset()
 
 	stat_n_simulations++;
 
-	for (RepairScheme *rs: m_repairSchemes)
-		rs->reset();
-
 	for (FaultDomain *fd: m_children)
 		fd->reset();
+
+	FaultDomain::reset();
 }
 
 faults_t GroupDomain::getFaultCount()
@@ -98,9 +93,6 @@ failures_t GroupDomain::repair()
 		// so that a scheme can act on the outputs/results of the previous one(s)
 		failures_t after_repair = rs->repair(this);
 
-		fail.uncorrected = std::min(fail.uncorrected, after_repair.uncorrected);
-		fail.undetected  = std::min(fail.undetected, after_repair.undetected);
-
 		// if any repair happened, dump
 		if (debug)
 		{
@@ -108,10 +100,13 @@ failures_t GroupDomain::repair()
 			{
 				std::cout << ">>> REPAIR " << m_name << " USING " << rs->getName() << " (state dump)\n";
 				dumpState();
-				std::cout << "FAULTS_BEFORE: " << faults_before_repair << " FAULTS_AFTER: " << fail.uncorrected << "\n";
+				std::cout << "FAULTS_BEFORE: " << fail << " FAULTS_AFTER: " << after_repair << "\n";
 				std::cout << "<<< END\n";
 			}
 		}
+
+		fail.uncorrected = std::min(fail.uncorrected, after_repair.uncorrected);
+		fail.undetected  = std::min(fail.undetected, after_repair.undetected);
 	}
 
 	if (fail.undetected > 0)
@@ -154,26 +149,20 @@ void GroupDomain::finalize()
 
 void GroupDomain::printStats(uint64_t sim_seconds)
 {
-	for (RepairScheme *rs: m_repairSchemes)
-		rs->printStats();
+	FaultDomain::printStats(sim_seconds);
 
 	for (FaultDomain *fd: m_children)
 		fd->printStats(sim_seconds);
 
-	// TODO: some slightly more advanced stats. At least some variability.
-	double sim_seconds_to_FIT = 3600e9 / sim_seconds;
+	// TODO: some slightly more advanced stats? At least some variability.
+	const double sim_seconds_to_FIT = 3600e9 / sim_seconds, nsim = stat_n_simulations;
 
-	double device_fail_rate = ((double)stat_total_failures) / ((double)stat_n_simulations);
-	double FIT_raw = device_fail_rate * sim_seconds_to_FIT;
-
-	double uncorrected_fail_rate = ((double)stat_n_failures.uncorrected) / ((double)stat_n_simulations);
-	double FIT_uncorr = uncorrected_fail_rate * sim_seconds_to_FIT;
-
-	double undetected_fail_rate = ((double)stat_n_failures.undetected) / ((double)stat_n_simulations);
-	double FIT_undet = undetected_fail_rate * sim_seconds_to_FIT;
+	double device_fail_rate = stat_total_failures / nsim;
+	double uncorrected_fail_rate = stat_n_failures.uncorrected / nsim;
+	double undetected_fail_rate = stat_n_failures.undetected / nsim;
 
 	std::cout << "[" << m_name << "] sims " << stat_n_simulations << " failed_sims " << stat_total_failures
-	    << " rate_raw " << device_fail_rate << " FIT_raw " << FIT_raw
-	    << " rate_uncorr " << uncorrected_fail_rate << " FIT_uncorr " << FIT_uncorr
-	    << " rate_undet " << undetected_fail_rate << " FIT_undet " << FIT_undet << "\n";
+		<< " rate_raw " << device_fail_rate << " FIT_raw " << device_fail_rate * sim_seconds_to_FIT
+		<< " rate_uncorr " << uncorrected_fail_rate << " FIT_uncorr " << uncorrected_fail_rate * sim_seconds_to_FIT
+		<< " rate_undet " << undetected_fail_rate << " FIT_undet " << undetected_fail_rate * sim_seconds_to_FIT << '\n';
 }

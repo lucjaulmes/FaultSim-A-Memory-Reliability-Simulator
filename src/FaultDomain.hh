@@ -26,42 +26,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <vector>
 #include <string>
+#include <iostream>
 
 #include "FaultRange.hh"
+#include "RepairScheme.hh"
 #include "dram_common.hh"
-
-
-typedef struct faults_t
-{
-	uint64_t transient, permanent;
-
-	inline
-	uint64_t total()
-	{
-		return transient + permanent;
-	}
-
-	inline
-	struct faults_t& operator+=(const struct faults_t &other)
-	{
-		transient += other.transient, permanent += other.permanent;
-		return *this;
-	}
-} faults_t;
-
-
-typedef struct failures_t
-{
-	uint64_t undetected, uncorrected;
-
-	inline
-	struct failures_t& operator+=(const struct failures_t &other)
-	{
-		undetected += other.undetected, uncorrected += other.uncorrected;
-		return *this;
-	}
-} failures_t;
-
 
 
 class FaultDomain
@@ -70,15 +39,23 @@ protected:
 	std::string m_name;
 	bool debug;
 
+	std::list<RepairScheme *> m_repairSchemes;
+
 public:
 	inline
 	FaultDomain(const char *name)
-		: m_name(name), debug(false)
+		: m_name(name), debug(false), m_repairSchemes()
 	{
 	}
 
 	inline
-	virtual ~FaultDomain() {}
+	virtual ~FaultDomain()
+	{
+		for (RepairScheme *rs: m_repairSchemes)
+			delete rs;
+
+		m_repairSchemes.clear();
+	}
 
 	inline
 	const std::string& getName() const
@@ -92,6 +69,12 @@ public:
 		debug = dbg;
 	}
 
+	inline
+	void addRepair(RepairScheme *repair)
+	{
+		m_repairSchemes.push_back(repair);
+	}
+
 	virtual faults_t getFaultCount() = 0;
 
 	inline
@@ -99,15 +82,34 @@ public:
 	{
 		// In the absence of repair schemes, all faults are undetected and uncorrected
 		faults_t n_faults = getFaultCount();
-		return {n_faults.total(), n_faults.total()};
+		failures_t errors = {n_faults.total(), n_faults.total()};
+
+		for (RepairScheme *rs: m_repairSchemes)
+		{
+			failures_t after_repair = rs->repair(this);
+
+			errors.uncorrected = std::min(errors.uncorrected, after_repair.uncorrected);
+			errors.undetected  = std::min(errors.undetected, after_repair.undetected);
+		}
+
+		return errors;
+	}
+
+	/** reset after each sim run */
+	virtual void reset()
+	{
+		for (RepairScheme *rs: m_repairSchemes)
+			rs->reset();
+	}
+
+	virtual void printStats(uint64_t sim_seconds)
+	{
+		for (RepairScheme *rs: m_repairSchemes)
+			rs->printStats();
 	}
 
 	virtual void scrub() = 0;
-	/** reset after each sim run */
-	virtual void reset() = 0;
 	virtual void dumpState() {}
-
-	virtual void printStats(uint64_t max_time) = 0;
 };
 
 #endif /* FAULTDOMAIN_HH_ */

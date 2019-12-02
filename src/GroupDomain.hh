@@ -31,15 +31,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class GroupDomain : public FaultDomain
 {
 protected:
+	std::list<FaultDomain *> m_children;
+
 	// cross-simulation overall program run statistics
 	uint64_t stat_n_simulations, stat_total_failures;
 	failures_t stat_n_failures;
 
 	// per-simulation run statistics
 	failures_t n_errors;
-
-	std::list<FaultDomain *> m_children;
-	std::list<RepairScheme *> m_repairSchemes;
 
 public:
 	GroupDomain(const char *name);
@@ -66,12 +65,6 @@ public:
 	void addDomain(FaultDomain *domain)
 	{
 		m_children.push_back(domain);
-	}
-
-	inline
-	void addRepair(RepairScheme *repair)
-	{
-		m_repairSchemes.push_back(repair);
 	}
 
 	inline

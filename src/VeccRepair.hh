@@ -62,7 +62,7 @@ public:
 		assert(m_swtol.size() == DRAM_MAX);
 	}
 
-	failures_t repair(GroupDomain *fd)
+	failures_t repair(FaultDomain *fd)
 	{
 		GroupDomain_dimm *dd = dynamic_cast<GroupDomain_dimm *>(fd);
 		std::list<FaultIntersection>& failures = dd->intersecting_ranges(log2(dd->burst_size()));
@@ -99,7 +99,7 @@ public:
 
 	VeccRepair(std::string name, int n_sym_correct, int n_sym_detect, int n_sym_extra, double protected_fraction);
 
-	failures_t repair(GroupDomain *fd);
+	failures_t repair(FaultDomain *fd);
 
 	void allow_software_tolerance(std::vector<double> tolerating_probability, std::vector<double> unprotected_tolerating_probability);
 

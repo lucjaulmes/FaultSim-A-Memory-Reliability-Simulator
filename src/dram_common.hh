@@ -40,4 +40,48 @@ typedef boost::random::variate_generator<random64_engine_t, random_uniform_t> ra
 typedef boost::mt19937                      random32_engine_t;
 
 
+// Just some counts
+typedef struct faults_t
+{
+	uint64_t transient, permanent;
+
+	inline
+	uint64_t total()
+	{
+		return transient + permanent;
+	}
+
+	inline
+	struct faults_t& operator+=(const struct faults_t &other)
+	{
+		transient += other.transient, permanent += other.permanent;
+		return *this;
+	}
+
+	inline friend std::ostream& operator<< (std::ostream& stream, const struct faults_t& f) {
+		stream << f.transient << " transient, " << f.permanent << " permanent";
+		return stream;
+	}
+} faults_t;
+
+
+typedef struct failures_t
+{
+	uint64_t undetected, uncorrected;
+
+	inline
+	struct failures_t& operator+=(const struct failures_t &other)
+	{
+		undetected += other.undetected, uncorrected += other.uncorrected;
+		return *this;
+	}
+
+	inline friend std::ostream& operator<< (std::ostream& stream, const struct failures_t& e) {
+		stream << e.undetected << " undetected, " << e.uncorrected << " uncorrected";
+		return stream;
+	}
+} failures_t;
+
+
+
 #endif /* DRAM_COMMON_HH_ */

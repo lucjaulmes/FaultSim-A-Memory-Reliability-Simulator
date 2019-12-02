@@ -36,7 +36,7 @@ ChipKillRepair::ChipKillRepair(std::string name, int n_sym_correct, int n_sym_de
 {
 }
 
-failures_t ChipKillRepair::repair(GroupDomain *fd)
+failures_t ChipKillRepair::repair(FaultDomain *fd)
 {
 	GroupDomain_dimm *dd = dynamic_cast<GroupDomain_dimm *>(fd);
 	auto predicate = [this](FaultIntersection &error) { return error.chip_count() > m_n_correct; };

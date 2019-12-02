@@ -23,6 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CubeRAIDRepair.hh"
 #include "DRAMDomain.hh"
+#include "GroupDomain_cube.hh"
 #include "Settings.hh"
 
 extern struct Settings settings;
@@ -36,16 +37,17 @@ CubeRAIDRepair::CubeRAIDRepair(std::string name, uint n_sym_correct, uint n_sym_
 {
 }
 
-failures_t CubeRAIDRepair::repair(GroupDomain *fd)
+failures_t CubeRAIDRepair::repair(FaultDomain *fd)
 {
+	GroupDomain_cube *cd = dynamic_cast<GroupDomain_cube *>(fd);
 	failures_t fail = {0, 0};
 	// Repair this module.  Assume 8-bit symbols.
 
-	std::list<FaultDomain *> &pChips = fd->getChildren();
+	std::list<FaultDomain *> &pChips = cd->getChildren();
 
 	//Clear out the touched values for all chips
-	for (FaultDomain *fd: pChips)
-		for (FaultRange *fr: dynamic_cast<DRAMDomain *>(fd)->getRanges())
+	for (FaultDomain *cd: pChips)
+		for (FaultRange *fr: dynamic_cast<DRAMDomain *>(cd)->getRanges())
 			fr->touched = 0;
 
 	// Take each chip in turn.  For every fault range,

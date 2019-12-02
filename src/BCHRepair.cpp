@@ -52,7 +52,7 @@ BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t dev
 	m_word_mask = 1ULL << m_word_bits;
 }
 
-failures_t BCHRepair::repair(GroupDomain *fd)
+failures_t BCHRepair::repair(FaultDomain *fd)
 {
 	GroupDomain_dimm *dd = dynamic_cast<GroupDomain_dimm *>(fd);
 	auto predicate = [this](FaultIntersection &error) { return error.bit_count(m_word_mask) > m_n_correct; };

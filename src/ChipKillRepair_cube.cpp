@@ -37,18 +37,19 @@ ChipKillRepair_cube::ChipKillRepair_cube(std::string name, int n_sym_correct, in
 	banks = 1 << DRAMchip->getLogBanks();
 }
 
-failures_t ChipKillRepair_cube::repair(GroupDomain *fd)
+failures_t ChipKillRepair_cube::repair(FaultDomain *fd)
 {
 	// Choose the algorithm based on the whether its modelled as vertical channels or horizontal channels
+	GroupDomain_cube *cd = dynamic_cast<GroupDomain_cube *>(fd);
 
-	if (dynamic_cast<GroupDomain_cube *>(fd)->horizontalTSV())
-		return repair_horizontalTSV(fd);
+	if (cd->horizontalTSV())
+		return repair_horizontalTSV(cd);
 	else
-		return repair_verticalTSV(fd);
+		return repair_verticalTSV(cd);
 }
 
 
-failures_t ChipKillRepair_cube::repair_horizontalTSV(GroupDomain *fd)
+failures_t ChipKillRepair_cube::repair_horizontalTSV(GroupDomain_cube *fd)
 {
 	failures_t fail = {0, 0};
 	std::list<FaultDomain *> &pChips = fd->getChildren();
@@ -215,7 +216,7 @@ failures_t ChipKillRepair_cube::repair_horizontalTSV(GroupDomain *fd)
 	return fail;
 }
 
-failures_t ChipKillRepair_cube::repair_verticalTSV(GroupDomain *fd)
+failures_t ChipKillRepair_cube::repair_verticalTSV(GroupDomain_cube *fd)
 {
 	return {0, 0};
 }
