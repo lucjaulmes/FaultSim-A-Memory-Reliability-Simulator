@@ -31,24 +31,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DRAMDomain.hh"
 
 
-Simulation::Simulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test_mode_t,
-					   bool debug_mode_t, bool cont_running_t, uint64_t output_bucket_t)
-	: m_interval(interval_t)
-	, m_scrub_interval(scrub_interval_t)
-	, test_mode(test_mode_t)
-	, debug_mode(debug_mode_t)
-	, cont_running(cont_running_t)
-	, m_output_bucket(output_bucket_t)
+Simulation::Simulation(uint64_t scrub_interval, bool debug_mode, bool cont_running, uint64_t output_bucket)
+	, m_scrub_interval(scrub_interval)
+	, m_debug_mode(mdebug_mode)
+	, m_cont_running(cont_running)
+	, m_output_bucket(output_bucket)
 	, stat_total_failures(0)
 	, stat_total_corrected(0)
 	, stat_total_sims(0)
 	, stat_sim_seconds(0)
 {
-	if ((m_scrub_interval % m_interval) != 0)
-	{
-		std::cout << "ERROR: Scrub interval must be a multiple of simulation time step interval\n";
-		exit(0);
-	}
 }
 
 Simulation::~Simulation()
@@ -60,7 +52,7 @@ Simulation::~Simulation()
 
 void Simulation::addDomain(GroupDomain *domain)
 {
-	domain->setDebug(debug_mode);
+	domain->setDebug(m_debug_mode);
 	m_domains.push_back(domain);
 }
 
@@ -245,17 +237,11 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 
 		// Peek at the future
 		auto next_pair = std::next(time_fault_pair);
-		bool repair_before_next = next_pair == q1.end() || floor(timestamp / m_interval) != floor(next_pair->first / m_interval);
 		bool scrub_before_next  = next_pair == q1.end() || floor(timestamp / m_scrub_interval) != floor(next_pair->first / m_scrub_interval);
 
 
-		// Somewhat artificial notion of “repair interval” to simulate faults that appear simultaneously
-		if (!repair_before_next)
-			continue;
-
-
 		// Run the repair function: This will check the correctability / detectability of the fault(s)
-		failures_t failure_count = m_domains.front()->repair();
+		failures_t failure_count = pDRAM->get_group().repair();
 
 		if (verbose == 2)
 		{
@@ -276,7 +262,7 @@ uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
 
 			errors++;
 
-			if (!cont_running)
+			if (!m_cont_running)
 			{
 				// if any repair fails, halt the simulation and report failure
 				finalize();

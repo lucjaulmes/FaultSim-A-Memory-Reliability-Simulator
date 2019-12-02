@@ -114,18 +114,13 @@ int main(int argc, char **argv)
 
 	// Configure simulator ///////////////////////////////////////////////
 	// Simulator settings are as follows:
-	// a. The setting.interval_s (in seconds) indicates the granularity of inserting/repairing faults.
-	// b. The setting.scrub_s (in seconds) indicates the granularity of scrubbing transient faults.
-	// c. The setting.debug will enable debug messages
-	// d. The setting.continue_running will enable users to continue running even if an uncorrectable error occurs
+	// a. The setting.scrub_s (in seconds) indicates the granularity of scrubbing transient faults.
+	// b. The setting.debug will enable debug messages
+	// c. The setting.continue_running will enable users to continue running even if an uncorrectable error occurs
 	//    (until an undetectable error occurs).
-	// e. The settings.output_bucket_s wil bucket system failure times
-	// NOTE: The test_mode setting allows the user to inject specific faults at very high FIT rates.
-	//		 This enables the user to test their ECC technique and also stress corner cases for fault specific ECC.
-	// NOTE: The test_mode setting is currently not implemented in the Event Based Simulator
+	// d. The settings.output_bucket_s will bucket system failure times
 
-	Simulation sim(settings.interval_s, settings.scrub_s, settings.test_mode,
-				settings.debug, settings.continue_running, settings.output_bucket_s);
+	Simulation sim(settings.scrub_s, settings.debug, settings.continue_running, settings.output_bucket_s);
 
 	// Run simulator //////////////////////////////////////////////////
 	sim.addDomain(module);       // register the top-level memory object with the simulation engine
@@ -149,7 +144,7 @@ GroupDomain *genModuleDIMM()
 	{
 		char buf[20];
 		sprintf(buf, "MODULE0.DRAM%d", i);
-		DRAMDomain *dram0 = new DRAMDomain(buf, i, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
+		DRAMDomain *dram0 = new DRAMDomain(dimm0, buf, i, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
 										   settings.cols);
 
 		const bool transient = true;
@@ -260,8 +255,8 @@ GroupDomain *genModule3D()
 	{
 		char buf[20];
 		sprintf(buf, "MODULE0.DRAM%d", i);
-		DRAMDomain *dram0 = new DRAMDomain(buf, i, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
-										   settings.cols);
+		DRAMDomain *dram0 = new DRAMDomain(stack0, buf, i, settings.chip_bus_bits, settings.ranks, settings.banks,
+										   settings.rows, settings.cols);
 
 		if (settings.faultmode == FM_UNIFORM_BIT)
 		{

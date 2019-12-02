@@ -33,9 +33,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern struct Settings settings;
 
-DRAMDomain::DRAMDomain(char *name, unsigned id, uint32_t bitwidth, uint32_t ranks, uint32_t banks, uint32_t rows,
-					   uint32_t cols, double weibull_shape_parameter)
+DRAMDomain::DRAMDomain(GroupDomain *group, char *name, unsigned id, uint32_t bitwidth, uint32_t ranks, uint32_t banks,
+					   uint32_t rows, uint32_t cols, double weibull_shape_parameter)
 	: FaultDomain(name)
+    , parent(*group)
     , n_faults({0}), n_class_faults({{0}}), n_tsv_faults({0})
 	, FIT_rate({{0.}})
 	, chip_in_rank(id)

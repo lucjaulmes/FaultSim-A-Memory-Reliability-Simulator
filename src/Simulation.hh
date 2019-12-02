@@ -31,8 +31,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class Simulation
 {
 public:
-	Simulation(uint64_t interval_t, uint64_t scrub_interval_t, uint test_mode_t, bool debug_mode_t,
-	    bool cont_running_t, uint64_t output_bucket_t);
+	Simulation(uint64_t scrub_interval, bool debug_mode, bool cont_running, uint64_t output_bucket);
 	~Simulation();
 	void reset();
 	void finalize();
@@ -41,11 +40,9 @@ public:
 	void printStats(uint64_t max_time);
 
 protected:
-	uint64_t m_interval;
 	uint64_t m_scrub_interval;
-	uint    test_mode;
-	bool debug_mode;
-	bool cont_running;
+	bool m_debug_mode;
+	bool m_cont_running;
 	uint64_t m_output_bucket;
 
 

@@ -35,6 +35,8 @@ enum DramField { Bits = 0, Cols, Rows, Banks, Ranks, FIELD_MAX };
 class DRAMDomain : public FaultDomain
 {
 protected:
+	GroupDomain &parent;
+
 	uint32_t m_logsize[FIELD_MAX], m_shift[FIELD_MAX];
 	uint64_t m_size[FIELD_MAX], m_mask[FIELD_MAX];
 
@@ -55,8 +57,8 @@ protected:
 	double weibull_shape;
 
 public:
-	DRAMDomain(char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks, uint32_t n_rows, uint32_t n_cols,
-				double weibull_shape_parameter = 1.);
+	DRAMDomain(GroupDomain *group, char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks,
+			   uint32_t n_rows, uint32_t n_cols, double weibull_shape_parameter = 1.);
 
 	inline
 	void setFIT(fault_class_t faultClass, bool isTransient, double FIT)
@@ -111,6 +113,12 @@ public:
 	unsigned get_chip_num() const
 	{
 		return chip_in_rank;
+	}
+
+	inline
+	GroupDomain& get_group()
+	{
+		return parent;
 	}
 
 	void scrub();
