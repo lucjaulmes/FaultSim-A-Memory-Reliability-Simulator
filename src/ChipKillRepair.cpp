@@ -42,7 +42,12 @@ failures_t ChipKillRepair::repair(FaultDomain *fd)
 	const size_t log2_data_chips = floor(log2(dd->chips()));
 	size_t symbol_bits = floor(log2(dd->burst_size() >> log2_data_chips));
 
-	assert(dd->chips() == (1 << log2_data_chips) + 2 * m_n_correct);
+	if (dd->chips() != (1 << log2_data_chips) + 2 * m_n_correct)
+	{
+		std::cout << "ChipKill" << m_n_correct << " setup is incorrect: " << dd->chips() << " chips in DIMM"
+				  << ", expected " << 2 * m_n_correct << " redundant chips\n";
+		std::abort();
+	}
 
 	std::list<FaultIntersection>& failures = dd->intersecting_ranges(symbol_bits, predicate);
 

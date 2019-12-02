@@ -37,8 +37,8 @@ DRAMDomain::DRAMDomain(GroupDomain *group, char *name, unsigned id, uint32_t bit
 					   uint32_t rows, uint32_t cols, double weibull_shape_parameter)
 	: FaultDomain(name)
     , parent(*group)
-    , n_faults({0}), n_class_faults({{0}}), n_tsv_faults({0})
-	, FIT_rate({{0.}})
+    , n_faults({0, 0}), n_class_faults({{0, 0}}), n_tsv_faults({0, 0})
+	, FIT_rate({{0., 0.}})
 	, chip_in_rank(id)
     , weibull_shape(1. / weibull_shape_parameter)
 {
@@ -273,7 +273,7 @@ FaultRange *DRAMDomain::genRandomRange(bool rank, bool bank, bool row, bool col,
 	return new FaultRange(this, address, wildcard_mask, isTSV, transient, max_faults);
 }
 
-void DRAMDomain::printStats(uint64_t max_time)
+void DRAMDomain::printStats(uint64_t max_time [[gnu::unused]])
 {
 	std::cout << " Transient: ";
 

@@ -46,7 +46,6 @@ public:
 
 	virtual void setFIT_TSV(bool transient, double FIT) = 0;
 
-	virtual void prepare() = 0;
     failures_t repair();
     void finalize();
 	void reset();
@@ -65,6 +64,14 @@ public:
 	void addDomain(FaultDomain *domain)
 	{
 		m_children.push_back(domain);
+	}
+
+	inline
+	void addChildRepair(RepairScheme *rs)
+	{
+		std::shared_ptr<RepairScheme> repair(rs);
+		for (FaultDomain *fd: m_children)
+			fd->addRepair(repair);
 	}
 
 	inline

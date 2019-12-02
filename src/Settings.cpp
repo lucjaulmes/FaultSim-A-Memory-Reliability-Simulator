@@ -63,11 +63,13 @@ template<typename T> struct container_translator
 
 
 // put the translator in the namespace for std::vector<T>
-namespace boost::property_tree {
+namespace boost {
+namespace property_tree {
     template<typename ch, typename traits, typename alloc, typename T>
 	struct translator_between<std::basic_string<ch, traits, alloc>, std::vector<T> > {
 		typedef container_translator<std::vector<T>> type;
 	};
+}
 }
 
 

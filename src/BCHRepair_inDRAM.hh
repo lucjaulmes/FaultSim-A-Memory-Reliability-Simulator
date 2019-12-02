@@ -19,73 +19,71 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef GROUPDOMAIN_DIMM_HH_
-#define GROUPDOMAIN_DIMM_HH_
+#ifndef BCHREPAIR_INDRAM_HH_
+#define BCHREPAIR_INDRAM_HH_
 
+#include <set>
+#include <list>
+#include <tuple>
+#include <string>
+#include <algorithm>
 #include <iostream>
-#include <functional>
-#include <memory>
-#include <math.h>
+#include <cassert>
 
 #include "dram_common.hh"
-#include "GroupDomain.hh"
 
-class GroupDomain_dimm : public GroupDomain
+#include "RepairScheme.hh"
+#include "DRAMDomain.hh"
+
+
+class BCHRepair_inDRAM : public RepairScheme
 {
-	/** Total Chips in a DIMM */
-	const uint64_t m_chips;
-	/** Total Banks per Chip */
-	const uint64_t m_banks;
-	/** The burst length per access, this determines the number of pins coming out of a Chip */
-	const uint64_t m_burst_size;
+protected:
+	size_t m_base_size, m_extra_size, m_n_correct;
 
-	std::list<FaultIntersection> m_failures;
-	bool m_failures_computed;
+	std::set<FaultIntersection *> modified_ranges;
 
-	void prepare()
-	{
-		m_failures.clear();
-		m_failures_computed = false;
-	}
+	void insert(std::list<FaultRange*> &list, FaultIntersection &err);
+	std::map<uint64_t, std::list<FaultRange*>> sort_per_bank(std::list<FaultRange*> &list);
 
 public:
-	virtual void setFIT_TSV(bool transient [[gnu::unused]], double FIT [[gnu::unused]])
+	BCHRepair_inDRAM(std::string name, size_t base = 128, size_t extra = 8)
+		: RepairScheme(name)
+		, m_base_size(base), m_extra_size(extra)
 	{
-		std::cerr << "Error: attemting to set TSV FIT on a DIMM" << std::endl;
-		std::abort();
-	};
+		// bits must be a power of 2, and since galois fields have size 2^m - 1, the BCH code used will
+		// be have m = ceil(log2(base)) size in bits of an element in the galois field
+		size_t element = 1 + round(log2(base));
+		size_t parity = extra % element;
 
-	GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_length)
-		: GroupDomain(name)
-		, m_chips(chips), m_banks(banks), m_burst_size(burst_length)
-		, m_failures(), m_failures_computed(false)
-	{
+		if (parity > 1 or base + extra >= (1ULL << element) - 1)
+		{
+			std::cerr << "Error, can not make a (" << base + extra << ", " << base << ") BCH code\n";
+			std::abort();
+		}
+		else if (parity == 1)
+		{
+			std::cerr << "Error, DUE not yet implemented for in-DRAM BCH codes\n";
+			std::abort();
+		}
+
+		m_n_correct = extra / element;
+		// m_n_detect = m_n_correct + parity;
 	}
 
-	/** Return faults that intersect across children */
-	std::list<FaultIntersection>& intersecting_ranges(unsigned symbol_size,
-													  std::function<bool(FaultIntersection&)> predicate = [](auto &f){ return f.chip_count() > 0; });
+	virtual ~BCHRepair_inDRAM() {}
 
+	failures_t repair(FaultDomain *fd);
 
-	inline
-	uint64_t data_chips() const
+	virtual void reset()
 	{
-		int log2_chips = floor(log2(m_chips));
-		return 1ULL << log2_chips;
+		for (auto &fr: modified_ranges)
+			delete fr;
+
+		modified_ranges.clear();
 	}
 
-	inline
-	uint64_t chips() const
-	{
-		return m_chips;
-	}
-
-	inline
-	uint64_t burst_size() const
-	{
-		return m_burst_size;
-	}
+	virtual void printStats() {}
 };
 
-
-#endif /* GROUPDOMAIN_DIMM_HH_ */
+#endif /* BCHREPAIR_INDRAM_HH_ */

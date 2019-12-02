@@ -26,7 +26,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 GroupDomain::GroupDomain(const char *name)
 	: FaultDomain(name)
 	, stat_n_simulations(0), stat_total_failures(0)
-	, stat_n_failures({0}), n_errors({0})
+	, stat_n_failures({0, 0}), n_errors({0, 0})
 {
 }
 
@@ -87,7 +87,7 @@ failures_t GroupDomain::repair()
 	}
 
 	// Apply group-level ECC, iteratively reduce number of faults with each successive repair scheme.
-	for (RepairScheme *rs: m_repairSchemes)
+	for (std::shared_ptr<RepairScheme> rs: m_repairSchemes)
 	{
 		// TODO: would be nice to share information between repair schemes,
 		// so that a scheme can act on the outputs/results of the previous one(s)

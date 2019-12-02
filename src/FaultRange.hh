@@ -123,7 +123,7 @@ public:
 	}
 
 	inline
-	size_t bit_count(size_t word_mask)
+	size_t bit_count_sum(size_t word_mask)
 	{
 		// for BCH codes, return the number of faults per word
 		size_t wrong_bits = 0;
@@ -131,6 +131,18 @@ public:
 			wrong_bits += __builtin_popcount(fr->fWildMask & word_mask);
 
 		return wrong_bits;
+	}
+
+	inline
+	size_t bit_count_aggregate(size_t word_mask)
+	{
+		// for BCH codes, return the number of faults per word
+		size_t wrong_bits = 0;
+
+		for (auto &fr: intersecting)
+			wrong_bits |= fr->fWildMask & word_mask;
+
+		return __builtin_popcount(wrong_bits);
 	}
 
 	inline

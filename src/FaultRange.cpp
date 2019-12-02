@@ -82,6 +82,10 @@ void FaultIntersection::intersection(const FaultIntersection &fr)
 
 	transient_remove = transient = transient || fr.transient;
 	std::copy(fr.intersecting.begin(), fr.intersecting.end(), std::back_inserter(intersecting));
+
+	// To enable the zero-FaultIntersection to be intersected successfully as left-hand side
+	if (m_pDRAM == nullptr)
+		m_pDRAM = fr.m_pDRAM;
 }
 
 std::string FaultIntersection::toString()

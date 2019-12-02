@@ -56,14 +56,14 @@ BCHRepair::BCHRepair(std::string name, int n_correct, int n_detect, uint64_t dev
 failures_t BCHRepair::repair(FaultDomain *fd)
 {
 	GroupDomain_dimm *dd = dynamic_cast<GroupDomain_dimm *>(fd);
-	auto predicate = [this](FaultIntersection &error) { return error.bit_count(m_word_mask) > m_n_correct; };
+	auto predicate = [this](FaultIntersection &error) { return error.bit_count_sum(m_word_mask) > m_n_correct; };
 
 	std::list<FaultIntersection>& failures = dd->intersecting_ranges(m_word_bits, predicate);
 
 	failures_t count = {0, 0};
 	for (auto fail: failures)
 	{
-		if (fail.bit_count(m_word_mask) > m_n_detect)
+		if (fail.bit_count_sum(m_word_mask) > m_n_detect)
 		{
 			fail.mark_undetectable();
 			count.undetected++;

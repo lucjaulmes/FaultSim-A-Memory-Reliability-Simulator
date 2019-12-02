@@ -35,6 +35,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BCHRepair_cube.hh"
 #include "CubeRAIDRepair.hh"
 #include "BCHRepair.hh"
+#include "BCHRepair_inDRAM.hh"
 #include "Simulation.hh"
 #include "Settings.hh"
 
@@ -122,8 +123,9 @@ int main(int argc, char **argv)
 
 	Simulation sim(settings.scrub_s, settings.debug, settings.continue_running, settings.output_bucket_s);
 
-	// Run simulator //////////////////////////////////////////////////
 	sim.addDomain(module);       // register the top-level memory object with the simulation engine
+
+	// Run simulator //////////////////////////////////////////////////
 	sim.simulate(settings.max_s, settings.n_sims, settings.verbose, settings.output_file);
 	sim.printStats(settings.max_s);
 
@@ -183,6 +185,14 @@ GroupDomain *genModuleDIMM()
 		dimm0->addDomain(dram0);
 	}
 
+	if (settings.repairmode & 8)
+	{
+		// ECC 8 + N = in-DRAM ECC + ECC(N)
+		BCHRepair_inDRAM *iecc = new BCHRepair_inDRAM("inDRAM SEC", 128, 8);
+		dimm0->addChildRepair(iecc);
+		settings.repairmode &= ~8;
+	}
+
 	//Add the 2D Repair Schemes
 	if (settings.repairmode == 0)
 	{
@@ -225,7 +235,8 @@ GroupDomain *genModuleDIMM()
 	if (settings.repairmode != 6)
 	{
 		// VECC has software-level tolerance already built-in. For other ECCs add it afterwards.
-		dimm0->addRepair(new SoftwareTolerance(std::string("SWTOL"), settings.sw_tol));
+		SoftwareTolerance *swtol = new SoftwareTolerance(std::string("SWTOL"), settings.sw_tol);
+		dimm0->addRepair(swtol);
 	}
 
 	return dimm0;

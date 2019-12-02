@@ -32,14 +32,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Simulation::Simulation(uint64_t scrub_interval, bool debug_mode, bool cont_running, uint64_t output_bucket)
-	, m_scrub_interval(scrub_interval)
-	, m_debug_mode(mdebug_mode)
+	: m_scrub_interval(scrub_interval)
+	, m_debug_mode(debug_mode)
 	, m_cont_running(cont_running)
 	, m_output_bucket(output_bucket)
 	, stat_total_failures(0)
 	, stat_total_corrected(0)
 	, stat_total_sims(0)
-	, stat_sim_seconds(0)
 {
 }
 
@@ -70,22 +69,13 @@ void Simulation::finalize()
 
 void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::string output_file)
 {
-	uint64_t bin_length = m_output_bucket;
-
-	// Max time of simulation in seconds
-	stat_sim_seconds = max_time;
-
 	// Number of bins that the output file will have
-	fail_time_bins.resize(max_time / bin_length);
-	fail_uncorrectable.resize(max_time / bin_length);
-	fail_undetectable.resize(max_time / bin_length);
-
-	for (uint i = 0; i < max_time / bin_length; i++)
-	{
-		fail_time_bins[i] = 0;
-		fail_uncorrectable[i] = 0;
-		fail_undetectable[i] = 0;
-	}
+	fail_time_bins.clear();
+	fail_time_bins.resize(max_time / m_output_bucket + 1, 0);
+	fail_uncorrectable.clear();
+	fail_uncorrectable.resize(max_time / m_output_bucket + 1, 0);
+	fail_undetectable.clear();
+	fail_undetectable.resize(max_time / m_output_bucket + 1, 0);
 
 	if (verbose)
 	{
@@ -100,7 +90,7 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 	for (uint64_t i = 0; i < n_sims; i++)
 	{
 
-		uint64_t failures = runOne(max_time, verbose, bin_length);
+		uint64_t failures = runOne(max_time, verbose, m_output_bucket);
 		stat_total_sims++;
 
 		faults_t fault_count = {0, 0};
@@ -123,6 +113,7 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 		}
 
 		if (verbose) fflush(stdout);
+		reset();
 	}
 	/**************************************************************/
 
@@ -154,7 +145,8 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 	int64_t undetectable_cumulative = 0;
 
 	const double per_sim = 1. / n_sims;
-	for (uint64_t jj = 0; jj < max_time / bin_length; jj++)
+	const uint64_t week_secs = 7 * 24 * 3600;
+	for (uint64_t jj = 0; jj < fail_time_bins.size(); jj++)
 	{
 		fail_cumulative += fail_time_bins[jj];
 		uncorrectable_cumulative += fail_uncorrectable[jj];
@@ -168,7 +160,7 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 		double p_uncorrectable_cumulative = uncorrectable_cumulative * per_sim;
 		double p_undetectable_cumulative = undetectable_cumulative * per_sim;
 
-		opfile << jj * 12 // why 12 ?
+		opfile << (jj * m_output_bucket) / week_secs
 			<< ',' << fail_time_bins[jj]
 			<< ',' << fail_cumulative
 			<< ',' << std::fixed << std::setprecision(6) << p_fail
@@ -186,11 +178,8 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 }
 
 
-uint64_t Simulation::runOne(uint64_t max_s, int verbose, uint64_t bin_length)
+uint64_t Simulation::runOne(const uint64_t max_s, int verbose, uint64_t bin_length)
 {
-	// reset the domain states e.g. recorded errors for the simulated timeframe
-	reset();
-
 	// Generate all the fault events that will happen
 	std::vector<std::pair<double, FaultRange *>> q1;
 	for (GroupDomain *fd: m_domains)

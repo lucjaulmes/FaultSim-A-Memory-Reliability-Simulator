@@ -40,13 +40,13 @@ public:
 	void printStats(uint64_t max_time);
 
 protected:
-	uint64_t m_scrub_interval;
-	bool m_debug_mode;
-	bool m_cont_running;
-	uint64_t m_output_bucket;
+	const uint64_t m_scrub_interval;
+	const bool m_debug_mode;
+	const bool m_cont_running;
+	const uint64_t m_output_bucket;
 
 
-	uint64_t stat_total_failures, stat_total_corrected, stat_total_sims, stat_sim_seconds;
+	uint64_t stat_total_failures, stat_total_corrected, stat_total_sims;
 
 	std::vector<uint64_t> fail_time_bins;
 	std::vector<uint64_t> fail_uncorrectable;

@@ -216,7 +216,7 @@ failures_t ChipKillRepair_cube::repair_horizontalTSV(GroupDomain_cube *fd)
 	return fail;
 }
 
-failures_t ChipKillRepair_cube::repair_verticalTSV(GroupDomain_cube *fd)
+failures_t ChipKillRepair_cube::repair_verticalTSV(GroupDomain_cube *fd [[gnu::unused]])
 {
 	return {0, 0};
 }

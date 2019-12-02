@@ -27,6 +27,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <iostream>
+#include <memory>
 
 #include "FaultRange.hh"
 #include "RepairScheme.hh"
@@ -39,7 +40,7 @@ protected:
 	std::string m_name;
 	bool debug;
 
-	std::list<RepairScheme *> m_repairSchemes;
+	std::list<std::shared_ptr<RepairScheme>> m_repairSchemes;
 
 public:
 	inline
@@ -51,9 +52,6 @@ public:
 	inline
 	virtual ~FaultDomain()
 	{
-		for (RepairScheme *rs: m_repairSchemes)
-			delete rs;
-
 		m_repairSchemes.clear();
 	}
 
@@ -70,21 +68,30 @@ public:
 	}
 
 	inline
-	void addRepair(RepairScheme *repair)
+	void addRepair(std::shared_ptr<RepairScheme> repair)
 	{
 		m_repairSchemes.push_back(repair);
 	}
 
+	inline
+	void addRepair(RepairScheme* repair)
+	{
+		m_repairSchemes.push_back(std::shared_ptr<RepairScheme>(repair));
+	}
+
 	virtual faults_t getFaultCount() = 0;
+	virtual void prepare() = 0;
 
 	inline
 	virtual failures_t repair()
 	{
+		prepare();
+
 		// In the absence of repair schemes, all faults are undetected and uncorrected
 		faults_t n_faults = getFaultCount();
 		failures_t errors = {n_faults.total(), n_faults.total()};
 
-		for (RepairScheme *rs: m_repairSchemes)
+		for (std::shared_ptr<RepairScheme> rs: m_repairSchemes)
 		{
 			failures_t after_repair = rs->repair(this);
 
@@ -98,13 +105,13 @@ public:
 	/** reset after each sim run */
 	virtual void reset()
 	{
-		for (RepairScheme *rs: m_repairSchemes)
+		for (std::shared_ptr<RepairScheme> rs: m_repairSchemes)
 			rs->reset();
 	}
 
-	virtual void printStats(uint64_t sim_seconds)
+	virtual void printStats(uint64_t sim_seconds [[gnu::unused]])
 	{
-		for (RepairScheme *rs: m_repairSchemes)
+		for (std::shared_ptr<RepairScheme> rs: m_repairSchemes)
 			rs->printStats();
 	}
 

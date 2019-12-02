@@ -28,6 +28,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 #include "FaultDomain.hh"
+#include "GroupDomain.hh"
+
 class FaultRange;
 
 enum DramField { Bits = 0, Cols, Rows, Banks, Ranks, FIELD_MAX };
@@ -42,12 +44,11 @@ protected:
 
 	// per-simulation run statistics
 	faults_t n_faults;
-
 	faults_t n_class_faults[DRAM_MAX], n_tsv_faults;
 
 	struct fault_param { double transient, permanent; } FIT_rate[DRAM_MAX];
 
-	std::list<FaultRange *> m_faultRanges;
+	std::list<FaultRange *> m_faultRanges, m_correctedRanges;
 
 	mutable std::mt19937_64 gen;
 	mutable std::mt19937 gen32;
@@ -70,19 +71,28 @@ public:
 	}
 
 	inline
+	void prepare()
+	{
+		m_correctedRanges.clear();
+		std::copy(m_faultRanges.begin(), m_faultRanges.end(),
+				  std::back_inserter(m_correctedRanges));
+	}
+
+	inline
 	void reset()
 	{
 		for (FaultRange *fr: m_faultRanges)
 			delete fr;
 
+		m_correctedRanges.clear();
 		m_faultRanges.clear();
-		n_faults = {0};
+		n_faults = {0, 0};
 	}
 
 	inline
-	const std::list<FaultRange *> &getRanges() const
+	std::list<FaultRange *> &getRanges()
 	{
-		return m_faultRanges;
+		return m_correctedRanges;
 	}
 
 	inline
@@ -151,6 +161,12 @@ public:
 
 	template <enum DramField F>
 	inline uint32_t get(const uint64_t address) const { return (address & m_mask[F]) >> m_shift[F]; }
+
+	template <enum DramField F>
+	inline bool same(const uint64_t address_A, const uint64_t address_B) const
+	{
+		return (address_A & ~m_mask[F]) == (address_B & ~m_mask[F]);
+	}
 
 	template <enum DramField F>
 	inline void put(uint64_t &address, const int32_t value) const
