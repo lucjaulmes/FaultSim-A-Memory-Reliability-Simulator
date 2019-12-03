@@ -113,6 +113,8 @@ public:
 		intersecting.push_back(fault);
 	}
 
+	inline ~FaultIntersection() { intersecting.clear(); }
+
 	void intersection(const FaultIntersection &fr);
 
 	// Each FaultRange represents chip with intersecting errors

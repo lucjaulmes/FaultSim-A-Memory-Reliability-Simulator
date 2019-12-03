@@ -28,6 +28,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
+#include "faultsim.hh"
 #include "dram_common.hh"
 #include "Settings.hh"
 
@@ -91,7 +92,6 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 		std::cout << "  + override " << opt.substr(0, pos) << '=' << opt.substr(pos + 1) << std::endl;
 	}
 
-	settings.interval_s = pt.get<uint64_t>("Sim.interval_s");
 	settings.scrub_s = pt.get<uint64_t>("Sim.scrub_s");
 	settings.max_s = pt.get<uint64_t>("Sim.max_s");
 	settings.n_sims = pt.get<uint64_t>("Sim.n_sims");
@@ -120,6 +120,39 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 	settings.fit_factor = pt.get<double>("Fault.fit_factor");
 	settings.scf_factor = pt.get<double>("Fault.scf_factor", 1.0);
 	settings.tsv_fit = pt.get<double>("Fault.tsv_fit");
+
+	if (settings.faultmode == FM_JAGUAR)
+	{
+		settings.fit_transient = {14.2, 1.4, 1.4, 0.2, 0.8, 0.3, 0.9};
+		settings.fit_permanent = {18.6, 0.3, 5.6, 8.2, 10.0, 1.4, 2.8};
+	}
+	else if (settings.faultmode == FM_UNIFORM_BIT)
+	{
+		settings.fit_transient.clear();
+		settings.fit_permanent.clear();
+
+		settings.fit_transient.push_back(33.05);
+		settings.fit_permanent.push_back(33.05);
+
+		settings.fit_transient.resize(DRAM_MAX, 0.);
+		settings.fit_permanent.resize(DRAM_MAX, 0.);
+	}
+	else if (settings.faultmode == FM_MANUAL)
+	{
+		settings.fit_transient = pt.get<std::vector<double>>("Fault.fit_transient", {14.2, 1.4, 1.4, 0.2, 0.8, 0.3, 0.9});
+		settings.fit_permanent = pt.get<std::vector<double>>("Fault.fit_permanent", {18.6, 0.3, 5.6, 8.2, 10.0, 1.4, 2.8});
+	}
+	else
+	{
+		std::cerr << "Wrong value of Fault.faultmode\n";
+		std::abort();
+	}
+
+	if (settings.fit_transient.size() != DRAM_MAX || settings.fit_permanent.size() != DRAM_MAX)
+	{
+		std::cerr << "ERROR: Wrong number of FIT rates\n";
+		std::abort();
+	}
 
 	settings.repairmode = pt.get<int>("ECC.repairmode");
 	settings.vecc_protection = pt.get<double>("ECC.vecc_protection");

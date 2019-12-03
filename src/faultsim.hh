@@ -27,5 +27,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Fault modes
 #define FM_UNIFORM_BIT 0
 #define FM_JAGUAR      1
+#define FM_MANUAL      2
 
 #endif /* FAULTSIM_HH_ */

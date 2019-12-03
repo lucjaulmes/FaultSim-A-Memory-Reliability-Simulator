@@ -29,7 +29,6 @@ struct Settings
 {
 	// Simulator settings
 	std::string output_file;      // Output results file
-	uint64_t interval_s; // Simulation interval (seconds)
 	uint64_t scrub_s;    // Scrubbing interval (seconds)
 	uint64_t max_s;      // Simulation total duration (seconds)
 	uint64_t n_sims;    // Number of simulations to run total
@@ -59,6 +58,9 @@ struct Settings
 	bool enable_tsv;        // Enable TSV fault injection
 	bool enable_transient;  // Enable transient fault injection
 	bool enable_permanent;  // Enable permanent fault injection
+
+	std::vector<double> fit_transient;
+	std::vector<double> fit_permanent;
 
 	// ECC configuration
 	int repairmode;     // Type of ECC to apply

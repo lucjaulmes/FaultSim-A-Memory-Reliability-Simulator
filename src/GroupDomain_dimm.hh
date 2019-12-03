@@ -49,12 +49,6 @@ class GroupDomain_dimm : public GroupDomain
 	}
 
 public:
-	virtual void setFIT_TSV(bool transient [[gnu::unused]], double FIT [[gnu::unused]])
-	{
-		std::cerr << "Error: attemting to set TSV FIT on a DIMM" << std::endl;
-		std::abort();
-	};
-
 	GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_length)
 		: GroupDomain(name)
 		, m_chips(chips), m_banks(banks), m_burst_size(burst_length)

@@ -149,38 +149,14 @@ GroupDomain *genModuleDIMM()
 		DRAMDomain *dram0 = new DRAMDomain(dimm0, buf, i, settings.chip_bus_bits, settings.ranks, settings.banks, settings.rows,
 										   settings.cols);
 
-		const bool transient = true;
-		if (settings.faultmode == FM_UNIFORM_BIT)
+		double scf_factor = settings.scf_factor;
+		for (int cls = DRAM_1BIT; cls != DRAM_MAX; cls++)
 		{
-			if (settings.enable_transient) dram0->setFIT(DRAM_1BIT, transient, 33.05);
-			if (settings.enable_permanent) dram0->setFIT(DRAM_1BIT, not transient, 33.05);
-		}
-		else if (settings.faultmode == FM_JAGUAR)
-		{
-			if (settings.enable_transient)
-			{
-				dram0->setFIT(DRAM_1BIT,  transient, 14.2 * settings.fit_factor * settings.scf_factor);
-				dram0->setFIT(DRAM_1WORD, transient,  1.4 * settings.fit_factor);
-				dram0->setFIT(DRAM_1COL,  transient,  1.4 * settings.fit_factor);
-				dram0->setFIT(DRAM_1ROW,  transient,  0.2 * settings.fit_factor);
-				dram0->setFIT(DRAM_1BANK, transient,  0.8 * settings.fit_factor);
-				dram0->setFIT(DRAM_NBANK, transient,  0.3 * settings.fit_factor);
-				dram0->setFIT(DRAM_NRANK, transient,  0.9 * settings.fit_factor);
-			}
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
 
-			if (settings.enable_permanent)
-			{
-				dram0->setFIT(DRAM_1BIT,  not transient, 18.6 * settings.fit_factor * settings.scf_factor);
-				dram0->setFIT(DRAM_1WORD, not transient,  0.3 * settings.fit_factor);
-				dram0->setFIT(DRAM_1COL,  not transient,  5.6 * settings.fit_factor);
-				dram0->setFIT(DRAM_1ROW,  not transient,  8.2 * settings.fit_factor);
-				dram0->setFIT(DRAM_1BANK, not transient, 10.0 * settings.fit_factor);
-				dram0->setFIT(DRAM_NBANK, not transient,  1.4 * settings.fit_factor);
-				dram0->setFIT(DRAM_NRANK, not transient,  2.8 * settings.fit_factor);
-			}
+			scf_factor = 1.;
 		}
-		else
-			assert(0);
 
 		dimm0->addDomain(dram0);
 	}
@@ -250,17 +226,9 @@ GroupDomain *genModule3D()
 	GroupDomain_cube *stack0 = new GroupDomain_cube("MODULE0", 1, settings.chips_per_rank, settings.banks, settings.data_block_bits,
 	    settings.cube_addr_dec_depth, settings.cube_ecc_tsv, settings.cube_redun_tsv, settings.enable_tsv);
 
-	//Set FIT rates for TSVs, these are set at the GroupDomain level as these are common to the entire cube
-	stack0->setFIT_TSV(1, settings.tsv_fit);
-	stack0->setFIT_TSV(0, settings.tsv_fit);
-
-	// Set FIT rates for different granularity for all devices in the module and add devices into the module
-	double DRAM_nrank_fit_trans = 0;
-	double DRAM_nrank_fit_perm = 0;
-
-	// Rank FIT rates cannot be directly translated to 3D stack
-	DRAM_nrank_fit_trans = 0.0;
-	DRAM_nrank_fit_perm = 0.0;
+	// Set FIT rates for TSVs, these are set at the GroupDomain level as these are common to the entire cube
+	stack0->setFIT_TSV(true, settings.tsv_fit);
+	stack0->setFIT_TSV(false, settings.tsv_fit);
 
 	for (uint32_t i = 0; i < settings.chips_per_rank; i++)
 	{
@@ -269,38 +237,18 @@ GroupDomain *genModule3D()
 		DRAMDomain *dram0 = new DRAMDomain(stack0, buf, i, settings.chip_bus_bits, settings.ranks, settings.banks,
 										   settings.rows, settings.cols);
 
-		if (settings.faultmode == FM_UNIFORM_BIT)
+		double scf_factor = settings.scf_factor;
+		for (int cls = DRAM_1BIT; cls != DRAM_NRANK; cls++)
 		{
-			// use a default FIT rate equal to probability of any Jaguar fault
-			if (settings.enable_transient) dram0->setFIT(DRAM_1BIT, 1, 33.05);
-			if (settings.enable_permanent) dram0->setFIT(DRAM_1BIT, 0, 33.05);
-		}
-		else if (settings.faultmode == FM_JAGUAR)
-		{
-			if (settings.enable_transient)
-			{
-				dram0->setFIT(DRAM_1BIT, 1, 14.2);
-				dram0->setFIT(DRAM_1WORD, 1, 1.4);
-				dram0->setFIT(DRAM_1COL, 1, 1.4);
-				dram0->setFIT(DRAM_1ROW, 1, 0.2);
-				dram0->setFIT(DRAM_1BANK, 1, 0.8);
-				dram0->setFIT(DRAM_NBANK, 1, 0.3);
-				dram0->setFIT(DRAM_NRANK, 1, DRAM_nrank_fit_trans);
-			}
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
 
-			if (settings.enable_permanent)
-			{
-				dram0->setFIT(DRAM_1BIT, 0, 18.6);
-				dram0->setFIT(DRAM_1WORD, 0, 0.3);
-				dram0->setFIT(DRAM_1COL, 0, 5.6);
-				dram0->setFIT(DRAM_1ROW, 0, 8.2);
-				dram0->setFIT(DRAM_1BANK, 0, 10.0);
-				dram0->setFIT(DRAM_NBANK, 0, 1.4);
-				dram0->setFIT(DRAM_NRANK, 0, DRAM_nrank_fit_perm);
-			}
+			scf_factor = 1.;
 		}
-		else
-			assert(0);
+
+		// Rank FIT rates cannot be directly translated to 3D stack
+		dram0->setFIT(DRAM_NRANK, true,  0.);
+		dram0->setFIT(DRAM_NRANK, false, 0.);
 
 		stack0->addDomain(dram0);
 	}

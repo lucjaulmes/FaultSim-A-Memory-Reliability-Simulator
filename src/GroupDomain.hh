@@ -44,8 +44,6 @@ public:
 	GroupDomain(const char *name);
 	virtual ~GroupDomain();
 
-	virtual void setFIT_TSV(bool transient, double FIT) = 0;
-
     failures_t repair();
     void finalize();
 	void reset();
