@@ -26,15 +26,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GroupDomain.hh"
 #include "Settings.hh"
-#include "faultsim.hh"
 
 #include "DRAMDomain.hh"
 
 
 extern struct Settings settings;
 
-DRAMDomain::DRAMDomain(GroupDomain *group, char *name, unsigned id, uint32_t bitwidth, uint32_t ranks, uint32_t banks,
-					   uint32_t rows, uint32_t cols, double weibull_shape_parameter)
+DRAMDomain::DRAMDomain(GroupDomain *group, const std::string &name, unsigned id, uint32_t bitwidth, uint32_t ranks,
+					   uint32_t banks, uint32_t rows, uint32_t cols, double weibull_shape_parameter)
 	: FaultDomain(name)
     , parent(*group)
     , n_faults({0, 0}), n_class_faults({{0, 0}}), n_tsv_faults({0, 0})
@@ -44,7 +43,6 @@ DRAMDomain::DRAMDomain(GroupDomain *group, char *name, unsigned id, uint32_t bit
 {
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	gen.seed(seed);
-	gen32.seed(seed);
 
 	m_size[Bits]  = bitwidth;
 	m_size[Cols]  = cols;

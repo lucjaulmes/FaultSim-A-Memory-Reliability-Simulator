@@ -67,7 +67,7 @@ void Simulation::finalize()
 		fd->finalize();
 }
 
-void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::string output_file)
+void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::ofstream &opfile)
 {
 	// Number of bins that the output file will have
 	fail_time_bins.clear();
@@ -127,13 +127,6 @@ void Simulation::simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::
 	std::cout << "Out of " << stat_total_sims << " simulations, "
 			<< stat_total_failures << " failed and "
 			<< stat_total_corrected << " encountered correctable errors\n";
-
-	std::ofstream opfile(output_file);
-	if (!opfile.is_open())
-	{
-		std::cout << "ERROR: output file " << output_file << ": opening failed\n" << std::endl;
-		return;
-	}
 
 	opfile << "WEEKS,FAULT,FAULT-CUMU,P(FAULT),P(FAULT-CUMU)"
 			<< ",UNCORRECTABLE,UNCORRECTABLE-CUMU,P(UNCORRECTABLE),P(UNCORRECTABLE-CUMU)"

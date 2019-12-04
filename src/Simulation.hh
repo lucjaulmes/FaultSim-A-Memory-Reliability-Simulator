@@ -24,6 +24,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "FaultDomain.hh"
 #include "GroupDomain.hh"
@@ -35,7 +36,7 @@ public:
 	~Simulation();
 	void reset();
 	void finalize();
-	void simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::string output_file);
+	void simulate(uint64_t max_time, uint64_t n_sims, int verbose, std::ofstream& output_file);
 	void addDomain(GroupDomain *domain);
 	void printStats(uint64_t max_time);
 

@@ -19,20 +19,17 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <unordered_map>
 #include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdint.h>
+#include <sstream>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
-#include "faultsim.hh"
 #include "dram_common.hh"
 #include "Settings.hh"
 
-// make a boost::property_tree::id_translator for std containers
+/** A boost::property_tree::id_translator for std containers */
 template<typename T> struct container_translator
 {
 	typedef std::string internal_type;
@@ -53,31 +50,72 @@ template<typename T> struct container_translator
 		return boost::make_optional(values);
 	}
 
-	boost::optional<std::string> put_value(const T& b) {
+	boost::optional<std::string> put_value(const T& values) {
 		std::stringstream ss;
 		size_t i = 0;
-		for (auto v : b)
+		for (auto v : values)
 			ss << (i++?" ":"") << v;
 		return ss.str();
 	}
 };
 
 
-// put the translator in the namespace for std::vector<T>
-namespace boost {
-namespace property_tree {
-    template<typename ch, typename traits, typename alloc, typename T>
-	struct translator_between<std::basic_string<ch, traits, alloc>, std::vector<T> > {
-		typedef container_translator<std::vector<T>> type;
-	};
-}
-}
-
-
-int parse_settings(const std::string &ininame, std::vector<std::string> &config_overrides)
+/** A boost::property_tree::id_translator to extract enum values */
+template <typename T>
+struct enum_translator
 {
-	boost::property_tree::ptree pt;
+	typedef std::string internal_type;
+	typedef T external_type;
+
+	const std::unordered_map<std::string, T> allowed_values;
+
+	enum_translator(const std::unordered_map<std::string, T> &mapping)
+		: allowed_values(std::move(mapping))
+	{
+	}
+
+	boost::optional<T> get_value(const std::string& str) const
+	{
+		if (str.empty())
+			return boost::none;
+
+		std::string key;
+		for (auto c = str.begin(); c != str.end(); ++c)
+			// only keep lower-case alphanumerical characters.
+			if (std::isalnum(static_cast<unsigned char>(*c)))
+				key.push_back(std::tolower(static_cast<unsigned char>(*c)));
+
+		auto pos = allowed_values.find(key);
+		if (pos != allowed_values.end())
+			return boost::make_optional(pos->second);
+
+		std::cerr << "ERROR: value must be one of";
+		char c = ':';
+		for (auto &pair: allowed_values)
+		{
+			std::cerr << c << ' ' << pair.first;
+			c = ',';
+		}
+		std::cerr << " ; got " << key << std::endl;
+		return boost::none;
+	}
+};
+
+
+int Settings::parse_settings(const std::string &ininame, std::vector<std::string> &config_overrides)
+{
+	boost::property_tree::iptree pt;
 	boost::property_tree::ini_parser::read_ini(ininame.c_str(), pt);
+
+	container_translator<std::vector<double>> vec_tr;
+	enum_translator<decltype(organization)> org_tr({{"dimm", DIMM}, {"stack", STACK_3D}});
+	enum_translator<decltype(cube_model)> cube_tr({{"vertical", VERTICAL}, {"horizontal", HORIZONTAL}});
+	enum_translator<decltype(faultmode)> fm_tr({{"jaguar", JAGUAR}, {"uniformbit", UNIFORM_BIT}, {"manual", MANUAL}});
+	enum_translator<decltype(repairmode)> repair_tr({  // e.g. "iecc + DDC" is a valid key
+		{"none", NONE}, {"bch", BCH}, {"ddc", DDC}, {"raid", RAID}, {"vecc", VECC}, {"iecc", IECC},
+		{"ieccbch", IECC | BCH}, {"ieccddc", IECC | DDC}, {"ieccraid", IECC | RAID}, {"ieccvecc", IECC | VECC},
+		{"bchiecc", IECC | BCH}, {"ddciecc", IECC | DDC}, {"raidiecc", IECC | RAID}, {"vecciecc", IECC | VECC}
+	});
 
 	std::cout << "The selected config file is: " << ininame << std::endl;
 	for (const std::string &opt: config_overrides)
@@ -92,83 +130,110 @@ int parse_settings(const std::string &ininame, std::vector<std::string> &config_
 		std::cout << "  + override " << opt.substr(0, pos) << '=' << opt.substr(pos + 1) << std::endl;
 	}
 
-	settings.scrub_s = pt.get<uint64_t>("Sim.scrub_s");
-	settings.max_s = pt.get<uint64_t>("Sim.max_s");
-	settings.n_sims = pt.get<uint64_t>("Sim.n_sims");
-	settings.continue_running = pt.get<bool>("Sim.continue_running");
-	settings.verbose = pt.get<int>("Sim.verbose");
-	settings.debug = pt.get<int>("Sim.debug");
-	settings.output_bucket_s = pt.get<uint64_t>("Sim.output_bucket_s");
-
-	settings.stack_3D = pt.get<int>("Org.stack_3D");
-	settings.chips_per_rank = pt.get<int>("Org.chips_per_rank");
-	settings.chip_bus_bits = pt.get<int>("Org.chip_bus_bits");
-	settings.ranks = pt.get<int>("Org.ranks");
-	settings.banks = pt.get<int>("Org.banks");
-	settings.rows = pt.get<int>("Org.rows");
-	settings.cols = pt.get<int>("Org.cols");
-	settings.cube_model = pt.get<int>("Org.cube_model");
-	settings.cube_addr_dec_depth = pt.get<int>("Org.cube_addr_dec_depth");
-	settings.cube_ecc_tsv = pt.get<int>("Org.cube_ecc_tsv");
-	settings.cube_redun_tsv = pt.get<int>("Org.cube_redun_tsv");
-	settings.data_block_bits = pt.get<int>("Org.data_block_bits");
-
-	settings.faultmode = pt.get<int>("Fault.faultmode");
-	settings.enable_permanent = pt.get<int>("Fault.enable_permanent");
-	settings.enable_transient = pt.get<int>("Fault.enable_transient");
-	settings.enable_tsv = pt.get<int>("Fault.enable_tsv");
-	settings.fit_factor = pt.get<double>("Fault.fit_factor");
-	settings.scf_factor = pt.get<double>("Fault.scf_factor", 1.0);
-	settings.tsv_fit = pt.get<double>("Fault.tsv_fit");
-
-	if (settings.faultmode == FM_JAGUAR)
+	try
 	{
-		settings.fit_transient = {14.2, 1.4, 1.4, 0.2, 0.8, 0.3, 0.9};
-		settings.fit_permanent = {18.6, 0.3, 5.6, 8.2, 10.0, 1.4, 2.8};
+		scrub_s = pt.get<uint64_t>("sim.scrub_s");
+		max_s = pt.get<uint64_t>("sim.max_s");
+		n_sims = pt.get<uint64_t>("sim.n_sims");
+		output_bucket_s = pt.get<uint64_t>("sim.output_bucket_s");
+
+		continue_running = pt.get<bool>("sim.continue_running");
+		verbose = pt.get<int>("sim.verbose");
+		debug = pt.get<int>("sim.debug");
+
+		organization = pt.get<decltype(organization)>("org.organization", org_tr);
+		chips_per_rank = pt.get<int>("org.chips_per_rank");
+		chip_bus_bits = pt.get<int>("org.chip_bus_bits");
+		ranks = pt.get<int>("org.ranks");
+		banks = pt.get<int>("org.banks");
+		rows = pt.get<int>("org.rows");
+		cols = pt.get<int>("org.cols");
+		data_block_bits = pt.get<int>("org.data_block_bits");
+
+		if (organization == STACK_3D)
+		{
+			cube_model = pt.get<decltype(cube_model)>("org.cube.model", cube_tr);
+			cube_addr_dec_depth = pt.get<int>("org.cube.addr_dec_depth");
+			cube_ecc_tsv = pt.get<int>("org.cube.ecc_tsv");
+			cube_redun_tsv = pt.get<int>("org.cube.redun_tsv");
+			tsv_fit = pt.get<double>("fault.tsv_fit");
+		}
+
+		enable_permanent = pt.get<bool>("fault.enable_permanent");
+		enable_transient = pt.get<bool>("fault.enable_transient");
+		enable_tsv = pt.get<bool>("fault.enable_tsv");
+		fit_factor = pt.get<double>("fault.fit_factor");
+		scf_factor = pt.get<double>("fault.scf_factor", 1.0);
+
+		faultmode = pt.get<decltype(faultmode)>("fault.faultmode", fm_tr);
+
+		if (faultmode == UNIFORM_BIT)
+		{
+			fit_transient.clear();
+			fit_permanent.clear();
+
+			fit_transient.push_back(33.05);
+			fit_permanent.push_back(33.05);
+
+			fit_transient.resize(DRAM_MAX, 0.);
+			fit_permanent.resize(DRAM_MAX, 0.);
+		}
+		else if (faultmode == MANUAL)
+		{
+			fit_transient = pt.get<std::vector<double>>("fault.fit_transient", vec_tr);
+			fit_permanent = pt.get<std::vector<double>>("fault.fit_permanent", vec_tr);
+
+			if (fit_transient.size() != DRAM_MAX || fit_permanent.size() != DRAM_MAX)
+			{
+				std::cerr << "ERROR: Wrong number of FIT rates\n";
+				std::abort();
+			}
+		}
+
+		repairmode = pt.get<decltype(repairmode)>("ECC.repairmode", repair_tr);
+
+		// specify all the tolerance probabilities, in order, starting with 1WORD
+		// e.g. ".9 0 .1" means 90% tolerance of 1WORD DUEs, 0% of 1COL DUEs, and 10% of 1ROW DUEs
+		sw_tol = pt.get<std::vector<double>>("ECC.sw_tol", vec_tr);
+		sw_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
+		sw_tol.insert(sw_tol.begin(), sw_tol.front());  // set 1BIT = 1WORD
+
+		if ((repairmode & ~IECC) != NONE)
+		{
+			correct = pt.get<unsigned>("ECC.correct");
+			detect  = pt.get<unsigned>("ECC.detect");
+		}
+
+		if (repairmode & IECC)
+		{
+			iecc_codeword = pt.get<unsigned>("ECC.iecc.correct");
+			iecc_symbols  = pt.get<unsigned>("ECC.iecc.detect");
+		}
+
+		if ((repairmode & ~IECC) == VECC)
+		{
+			vecc_protection = pt.get<double>("ECC.vecc.protection");
+			vecc_correct = pt.get<unsigned>("ECC.vecc.correct");
+
+			// Same as above, but for the VECC–unprotected regions
+			vecc_sw_tol = pt.get<std::vector<double>>("ECC.vecc.sw_tol", sw_tol, vec_tr);
+			vecc_sw_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
+			vecc_sw_tol.insert(vecc_sw_tol.begin(), vecc_sw_tol.front());
+		}
 	}
-	else if (settings.faultmode == FM_UNIFORM_BIT)
+	catch (boost::wrapexcept<boost::property_tree::ptree_bad_path> &e)
 	{
-		settings.fit_transient.clear();
-		settings.fit_permanent.clear();
-
-		settings.fit_transient.push_back(33.05);
-		settings.fit_permanent.push_back(33.05);
-
-		settings.fit_transient.resize(DRAM_MAX, 0.);
-		settings.fit_permanent.resize(DRAM_MAX, 0.);
-	}
-	else if (settings.faultmode == FM_MANUAL)
-	{
-		settings.fit_transient = pt.get<std::vector<double>>("Fault.fit_transient", {14.2, 1.4, 1.4, 0.2, 0.8, 0.3, 0.9});
-		settings.fit_permanent = pt.get<std::vector<double>>("Fault.fit_permanent", {18.6, 0.3, 5.6, 8.2, 10.0, 1.4, 2.8});
-	}
-	else
-	{
-		std::cerr << "Wrong value of Fault.faultmode\n";
-		std::abort();
+		std::cerr << "Exception while loading config file: " << e.what() << std::endl;
+		return 1;
 	}
 
-	if (settings.fit_transient.size() != DRAM_MAX || settings.fit_permanent.size() != DRAM_MAX)
-	{
-		std::cerr << "ERROR: Wrong number of FIT rates\n";
-		std::abort();
-	}
+	pt.put<std::vector<double>>("fault.fit_transient", fit_transient, vec_tr);
+	pt.put<std::vector<double>>("fault.fit_permanent", fit_permanent, vec_tr);
+	pt.put<std::vector<double>>("ECC.sw_tol", sw_tol, vec_tr);
+	pt.put<std::vector<double>>("ECC.vecc.sw_tol", vecc_sw_tol, vec_tr);
+	pt.put<double>("ECC.vecc.protection", vecc_protection);
 
-	settings.repairmode = pt.get<int>("ECC.repairmode");
-	settings.vecc_protection = pt.get<double>("ECC.vecc_protection");
-
-	// specify all the tolerance probabilities, in order, starting with 1WORD
-	// e.g. ".9 0 .1" means 90% tolerance of 1WORD DUEs, 0% of 1COL DUEs, and 10% of 1ROW DUEs
-	settings.sw_tol = pt.get<std::vector<double>>("ECC.sw_tol");
-	settings.sw_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
-
-	// Same as above, but for the VECC–unprotected regions
-	settings.vecc_sw_tol = pt.get<std::vector<double>>("ECC.vecc_sw_tol", settings.sw_tol);
-	settings.vecc_sw_tol.resize(DRAM_MAX - DRAM_1WORD, 0.);
-
-	// set 1BIT = 1WORD
-	settings.sw_tol.insert(settings.sw_tol.begin(), settings.sw_tol.front());
-	settings.vecc_sw_tol.insert(settings.vecc_sw_tol.begin(), settings.vecc_sw_tol.front());
+	// Updated tree, can be written out (NB 1BIT should be stripped from both sw_tol values)
 
 	return 0;
 }

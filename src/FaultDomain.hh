@@ -44,7 +44,7 @@ protected:
 
 public:
 	inline
-	FaultDomain(const char *name)
+	FaultDomain(const std::string &name)
 		: m_name(name), debug(false), m_repairSchemes()
 	{
 	}

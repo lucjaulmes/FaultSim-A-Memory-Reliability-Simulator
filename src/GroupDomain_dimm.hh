@@ -49,7 +49,7 @@ class GroupDomain_dimm : public GroupDomain
 	}
 
 public:
-	GroupDomain_dimm(const char *name, uint64_t chips, uint64_t banks, uint64_t burst_length)
+	GroupDomain_dimm(const std::string& name, uint64_t chips, uint64_t banks, uint64_t burst_length)
 		: GroupDomain(name)
 		, m_chips(chips), m_banks(banks), m_burst_size(burst_length)
 		, m_failures(), m_failures_computed(false)

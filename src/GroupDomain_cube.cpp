@@ -27,7 +27,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern struct Settings settings;
 
-GroupDomain_cube::GroupDomain_cube(const char *name, unsigned cube_model, uint64_t chips, uint64_t banks, uint64_t burst_size,
+GroupDomain_cube::GroupDomain_cube(const std::string& name, unsigned cube_model, uint64_t chips, uint64_t banks, uint64_t burst_size,
 								   uint64_t cube_addr_dec_depth, uint64_t cube_ecc_tsv, uint64_t cube_redun_tsv, bool enable_tsv)
 	: GroupDomain(name)
 	, m_chips(chips), m_banks(banks), m_burst_size(burst_size)
@@ -145,7 +145,7 @@ void GroupDomain_cube::generateTSV(bool transient)
 				transient = true;
 			}
 
-			for (uint jj = 0; jj < (m_cols * m_bitwidth / cube_data_tsv); jj++)
+			for (unsigned jj = 0; jj < (m_cols * m_bitwidth / cube_data_tsv); jj++)
 			{
 				m_faultRanges.push_back(genRandomRange(0, 0, 0, 1, 1, transient, (ii % cube_data_tsv) + (jj * cube_data_tsv), true));
 				//std::cout << "|" <<(ii%cube_data_tsv)+(jj*cube_data_tsv)<< "|";

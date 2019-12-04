@@ -23,7 +23,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <stdlib.h>
 
-GroupDomain::GroupDomain(const char *name)
+GroupDomain::GroupDomain(const std::string& name)
 	: FaultDomain(name)
 	, stat_n_simulations(0), stat_total_failures(0)
 	, stat_n_failures({0, 0}), n_errors({0, 0})

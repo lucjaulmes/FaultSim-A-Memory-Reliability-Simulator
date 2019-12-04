@@ -24,53 +24,108 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <fstream>
+#include <type_traits>
 
 struct Settings
 {
-	// Simulator settings
-	std::string output_file;      // Output results file
-	uint64_t scrub_s;    // Scrubbing interval (seconds)
-	uint64_t max_s;      // Simulation total duration (seconds)
-	uint64_t n_sims;    // Number of simulations to run total
-	bool continue_running; // Continue simulations after the first uncorrectable error
-	uint test_mode;         // TODO document
-	int verbose;            // Enable or disable runtime output
-	bool debug;             // TODO document
-	uint64_t output_bucket_s; // Seconds per output histogram bucket
+	/** Scrubbing interval (seconds) */
+	uint64_t scrub_s;
+	/** Simulation total duration (seconds) */
+	uint64_t max_s;
+	/** Number of simulations to run total */
+	uint64_t n_sims;
+	/** Seconds per output histogram bucket */
+	uint64_t output_bucket_s;
 
-	// Memory system physical configuration
-	int stack_3D;   // Which topology to simulate e.g. DIMM or 3D stack
+	/** Continue simulations after the first uncorrectable error */
+	bool continue_running;
+	/** Enable or disable runtime output */
+	int verbose;
+	/** Enable a lot of printing */
+	bool debug;
+
+
+	/** The topology to simulate */
+	enum {DIMM, STACK_3D} organization;
 	// Settings for all DRAMs
-	uint chips_per_rank, chip_bus_bits, ranks, banks, rows, cols;
+	unsigned chips_per_rank, chip_bus_bits, ranks, banks, rows, cols;
+	/** Number of bits per transaction. Also symbol size (in bits) for RAID-like parity */
+	uint64_t data_block_bits;
+
 
 	// Settings for 3D stacks
-	uint cube_model;                // TODO document
-	uint64_t cube_addr_dec_depth;   // TODO document
-	uint64_t cube_ecc_tsv;          // TODO document
-	uint64_t cube_redun_tsv;        // TODO document
-	uint64_t data_block_bits;       // Symbol size (in Bits) for RAID-like parity
 
-	// Fault models
-	int faultmode;          // Fault injection model (uniform random bit errors, Jaguar FIT rates etc.)
-	double fit_factor;      // Base FIT rate scaling factor for memory arrays
-	double scf_factor;      // Base SCF rate scaling factor for memory arrays
-	double tsv_fit;         // FIT rate for TSVs
-	bool enable_tsv;        // Enable TSV fault injection
-	bool enable_transient;  // Enable transient fault injection
-	bool enable_permanent;  // Enable permanent fault injection
+	/** TODO document */
+	enum {VERTICAL, HORIZONTAL} cube_model;
+	/** TODO document */
+	uint64_t cube_addr_dec_depth;
+	/** TODO document */
+	uint64_t cube_ecc_tsv;
+	/** TODO document */
+	uint64_t cube_redun_tsv;
 
-	std::vector<double> fit_transient;
-	std::vector<double> fit_permanent;
+	/** Fault injection model (uniform random bit errors, Jaguar FIT rates etc.) */
+	enum {JAGUAR, UNIFORM_BIT, MANUAL} faultmode;
+	/** Base FIT rate scaling factor for memory arrays */
+	double fit_factor;
+	/** Base SCF rate scaling factor for memory arrays */
+	double scf_factor;
+	/** FIT rate for TSVs */
+	double tsv_fit;
+	/** Enable TSV fault injection */
+	bool enable_tsv;
+	/** Enable transient fault injection */
+	bool enable_transient;
+	/** Enable permanent fault injection */
+	bool enable_permanent;
+
+	/** Transient fault rates, default to the values from Jaguar supercomputer */
+	std::vector<double> fit_transient{14.2, 1.4, 1.4, 0.2, 0.8, 0.3, 0.9};
+
+	/** Permanent fault rates, default to the values from Jaguar supercomputer */
+	std::vector<double> fit_permanent{18.6, 0.3, 5.6, 8.2, 10.0, 1.4, 2.8};
+
 
 	// ECC configuration
-	int repairmode;     // Type of ECC to apply
-	std::vector<double> sw_tol;     // Fraction of failures that the software can tolerate
+
+	/** Type of ECC to apply: DDC = Data Device Correct */
+	enum {NONE = 0, BCH, DDC, RAID, VECC, IECC = 8} repairmode;
+
+	unsigned correct, detect;
+	unsigned iecc_codeword, iecc_symbols;
+
+
+	/** Fraction of failures that the software can tolerate */
+	std::vector<double> sw_tol;
+
+	/** Fraction of memory protected by Virtualized ECC */
 	double vecc_protection;
-	std::vector<double> vecc_sw_tol;     // Fraction software-tolerated failures in VECC-unprotected memory
+	/** Number of extra corrected symbols */
+	unsigned vecc_correct;
+	/** Fraction software-tolerated failures in VECC-unprotected memory */
+	std::vector<double> vecc_sw_tol;
+
+	/** Load values from the file at ininame */
+	int parse_settings(const std::string &ininame, std::vector<std::string> &config_overrides);
 };
+
 
 extern struct Settings settings;
 
-int parse_settings(const std::string &ininame, std::vector<std::string> &config_overrides);
+
+// define some enum operators
+template<typename EnumType> using if_enum = typename std::enable_if<std::is_enum<EnumType>::value, EnumType>::type;
+template<typename EnumType> using Int = typename std::underlying_type<EnumType>::type;
+
+template<typename T, class = if_enum<T>> inline constexpr T operator~ (T a) { return (T)~(Int<T>)a; }
+
+template<typename T, class = if_enum<T>> inline constexpr T operator| (T a, T b) { return (T)((Int<T>)a | (Int<T>)b); }
+template<typename T, class = if_enum<T>> inline constexpr T operator& (T a, T b) { return (T)((Int<T>)a & (Int<T>)b); }
+template<typename T, class = if_enum<T>> inline constexpr T operator^ (T a, T b) { return (T)((Int<T>)a ^ (Int<T>)b); }
+
+template<typename T, class = if_enum<T>> inline T& operator|= (T& a, T b) { return (T&)((Int<T>&)a |= (Int<T>)b); }
+template<typename T, class = if_enum<T>> inline T& operator&= (T& a, T b) { return (T&)((Int<T>&)a &= (Int<T>)b); }
+template<typename T, class = if_enum<T>> inline T& operator^= (T& a, T b) { return (T&)((Int<T>&)a ^= (Int<T>)b); }
 
 #endif // SETTINGS_HH_

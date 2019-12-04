@@ -51,14 +51,13 @@ protected:
 	std::list<FaultRange *> m_faultRanges, m_correctedRanges;
 
 	mutable std::mt19937_64 gen;
-	mutable std::mt19937 gen32;
 	std::weibull_distribution<double> time_dist;
 
 	unsigned chip_in_rank;
 	double weibull_shape;
 
 public:
-	DRAMDomain(GroupDomain *group, char *name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks,
+	DRAMDomain(GroupDomain *group, const std::string &name, unsigned id, uint32_t n_bitwidth, uint32_t n_ranks, uint32_t n_banks,
 			   uint32_t n_rows, uint32_t n_cols, double weibull_shape_parameter = 1.);
 
 	inline

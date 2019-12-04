@@ -41,7 +41,7 @@ protected:
 	failures_t n_errors;
 
 public:
-	GroupDomain(const char *name);
+	GroupDomain(const std::string& name);
 	virtual ~GroupDomain();
 
     failures_t repair();
