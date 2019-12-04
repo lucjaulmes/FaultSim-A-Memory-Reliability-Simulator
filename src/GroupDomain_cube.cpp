@@ -19,13 +19,18 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "GroupDomain_cube.hh"
 #include <iostream>
+#include <sstream>
 #include <random>
 #include <chrono>
+
+#include "DRAMDomain.hh"
+#include "ChipKillRepair_cube.hh"
+#include "BCHRepair_cube.hh"
+#include "CubeRAIDRepair.hh"
 #include "Settings.hh"
 
-extern struct Settings settings;
+#include "GroupDomain_cube.hh"
 
 GroupDomain_cube::GroupDomain_cube(const std::string& name, unsigned cube_model, uint64_t chips, uint64_t banks, uint64_t burst_size,
 								   uint64_t cube_addr_dec_depth, uint64_t cube_ecc_tsv, uint64_t cube_redun_tsv, bool enable_tsv)
@@ -86,6 +91,65 @@ GroupDomain_cube::GroupDomain_cube(const std::string& name, unsigned cube_model,
 		std::cout << "# cube_addr_dec_depth " << cube_addr_dec_depth << "\n";
 		std::cout << "# -------------------------------------------------------------------\n";
 	}
+}
+
+
+GroupDomain_cube* GroupDomain_cube::genModule(Settings &settings, int module_id)
+{
+	std::string mod = std::string("3DSTACK").append(std::to_string(module_id));
+
+	GroupDomain_cube *stack0 = new GroupDomain_cube(mod, settings.cube_model, settings.chips_per_rank, settings.banks,
+													settings.data_block_bits, settings.cube_addr_dec_depth, settings.cube_ecc_tsv,
+													settings.cube_redun_tsv, settings.enable_tsv);
+
+	// Set FIT rates for TSVs, these are set at the GroupDomain level as these are common to the entire cube
+	stack0->setFIT_TSV(true, settings.tsv_fit);
+	stack0->setFIT_TSV(false, settings.tsv_fit);
+
+	for (uint32_t i = 0; i < settings.chips_per_rank; i++)
+	{
+		std::string chip = mod.append(".DRAM").append(std::to_string(i));
+		DRAMDomain *dram0 = new DRAMDomain(stack0, chip, i, settings.chip_bus_bits, settings.ranks, settings.banks,
+										   settings.rows, settings.cols);
+
+		double scf_factor = settings.scf_factor;
+		for (int cls = DRAM_1BIT; cls != DRAM_NRANK; cls++)
+		{
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
+
+			scf_factor = 1.;
+		}
+
+		// Rank FIT rates cannot be directly translated to 3D stack
+		dram0->setFIT(DRAM_NRANK, true,  0.);
+		dram0->setFIT(DRAM_NRANK, false, 0.);
+
+		stack0->addDomain(dram0);
+	}
+
+	if (settings.repairmode == Settings::DDC)
+	{
+		std::string name = std::string("CK").append(std::to_string(settings.correct));
+		ChipKillRepair_cube *ck0 = new ChipKillRepair_cube(name, settings.correct, settings.detect, stack0);
+		stack0->addRepair(ck0);
+	}
+	else if (settings.repairmode == Settings::RAID)
+	{
+		// settings.data_block_bits used as RAID is computed over 512 bits (in our design)
+		CubeRAIDRepair *ck1 = new CubeRAIDRepair(std::string("RAID"), settings.correct, settings.detect, settings.data_block_bits);
+		stack0->addRepair(ck1);
+	}
+	else if (settings.repairmode == Settings::BCH)
+	{
+		// settings.data_block_bits used as SECDED/3EC4ED/6EC7ED is computed over 512 bits (in our design)
+		std::stringstream ss;
+		ss << settings.correct << "EC" << settings.detect << "ED";
+		BCHRepair_cube *bch0 = new BCHRepair_cube(ss.str(), settings.correct, settings.detect, settings.data_block_bits);
+		stack0->addRepair(bch0);
+	}
+
+	return stack0;
 }
 
 GroupDomain_cube::~GroupDomain_cube()

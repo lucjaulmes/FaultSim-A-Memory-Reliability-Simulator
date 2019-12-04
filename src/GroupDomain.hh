@@ -27,6 +27,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FaultDomain.hh"
 #include "RepairScheme.hh"
+#include "Settings.hh"
 
 class GroupDomain : public FaultDomain
 {
@@ -40,8 +41,9 @@ protected:
 	// per-simulation run statistics
 	failures_t n_errors;
 
-public:
 	GroupDomain(const std::string& name);
+
+public:
 	virtual ~GroupDomain();
 
     failures_t repair();

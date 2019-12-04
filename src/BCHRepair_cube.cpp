@@ -27,8 +27,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GroupDomain_cube.hh"
 #include "Settings.hh"
 
-extern struct Settings settings;
-
 BCHRepair_cube::BCHRepair_cube(std::string name, int n_correct, int n_detect, uint64_t data_block_bits) : RepairScheme(name)
 	, m_n_correct(n_correct)
 	, m_n_detect(n_detect)

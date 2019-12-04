@@ -26,8 +26,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GroupDomain_cube.hh"
 #include "Settings.hh"
 
-extern struct Settings settings;
-
 CubeRAIDRepair::CubeRAIDRepair(std::string name, unsigned n_sym_correct, unsigned n_sym_detect, unsigned data_block_bits)
 	: RepairScheme(name)
 	, m_n_correct(n_sym_correct)

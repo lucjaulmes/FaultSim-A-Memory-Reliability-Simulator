@@ -73,9 +73,11 @@ class GroupDomain_cube : public GroupDomain
 		// Good place to propagate TSV faults to DRAM chips?
 	}
 
-public:
 	GroupDomain_cube(const std::string& name, unsigned cube_model, uint64_t chips, uint64_t banks, uint64_t burst_length,
 					 uint64_t cube_addr_dec_depth, uint64_t cube_ecc_tsv, uint64_t cube_redun_tsv, bool enable_tsv);
+
+public:
+	static GroupDomain_cube* genModule(Settings &settings, int module_id);
 	~GroupDomain_cube();
 
 	inline

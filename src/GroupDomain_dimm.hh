@@ -48,7 +48,6 @@ class GroupDomain_dimm : public GroupDomain
 		m_failures_computed = false;
 	}
 
-public:
 	GroupDomain_dimm(const std::string& name, uint64_t chips, uint64_t banks, uint64_t burst_length)
 		: GroupDomain(name)
 		, m_chips(chips), m_banks(banks), m_burst_size(burst_length)
@@ -56,6 +55,8 @@ public:
 	{
 	}
 
+public:
+	static GroupDomain_dimm* genModule(Settings &settings, int module_id);
 	/** Return faults that intersect across children */
 	std::list<FaultIntersection>& intersecting_ranges(unsigned symbol_size,
 													  std::function<bool(FaultIntersection&)> predicate = [](auto &f){ return f.chip_count() > 0; });

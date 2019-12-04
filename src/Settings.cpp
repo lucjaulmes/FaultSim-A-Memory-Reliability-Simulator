@@ -29,6 +29,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dram_common.hh"
 #include "Settings.hh"
 
+/** global settings, really accessed globally only for debug/verbose flags */
+struct Settings settings = {};
+
+
 /** A boost::property_tree::id_translator for std containers */
 template<typename T> struct container_translator
 {

@@ -22,11 +22,82 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <stack>
 #include <cassert>
+#include <sstream>
 
 #include "FaultRange.hh"
 #include "DRAMDomain.hh"
+#include "ChipKillRepair.hh"
+#include "VeccRepair.hh"
+#include "CubeRAIDRepair.hh"
+#include "BCHRepair.hh"
+#include "BCHRepair_inDRAM.hh"
+#include "Settings.hh"
 
 #include "GroupDomain_dimm.hh"
+
+
+GroupDomain_dimm* GroupDomain_dimm::genModule(Settings &settings, int module_id)
+{
+	std::string mod = std::string("DIMM").append(std::to_string(module_id));
+
+	GroupDomain_dimm *dimm0 = new GroupDomain_dimm(mod, settings.chips_per_rank, settings.banks, settings.data_block_bits);
+
+	for (uint32_t i = 0; i < settings.chips_per_rank; i++)
+	{
+		std::string chip = mod.append(".DRAM").append(std::to_string(i));
+		DRAMDomain *dram0 = new DRAMDomain(dimm0, chip, i, settings.chip_bus_bits, settings.ranks, settings.banks,
+										   settings.rows, settings.cols);
+
+		for (int cls = DRAM_1BIT; cls != DRAM_MAX; cls++)
+		{
+			double scf_factor = cls == DRAM_1BIT ? settings.scf_factor : 1.;
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
+			dram0->setFIT(DRAM_1BIT, true, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
+		}
+
+		dimm0->addDomain(dram0);
+	}
+
+	if (settings.repairmode & Settings::IECC)
+	{
+		// ECC 8 + N = in-DRAM ECC + ECC(N)
+		BCHRepair_inDRAM *iecc = new BCHRepair_inDRAM("inDRAM SEC", 128, 16);
+		dimm0->addChildRepair(iecc);
+		settings.repairmode = settings.repairmode & ~Settings::IECC;
+	}
+
+	if (settings.repairmode == Settings::DDC)
+	{
+		std::string name = std::string("CK").append(std::to_string(settings.correct));
+		ChipKillRepair *ck0 = new ChipKillRepair(name, settings.correct, settings.detect);
+		dimm0->addRepair(ck0);
+	}
+	else if (settings.repairmode == Settings::BCH)
+	{
+		std::stringstream ss;
+		ss << settings.correct << "EC" << settings.detect << "ED";
+		BCHRepair *bch0 = new BCHRepair(ss.str(), settings.correct, settings.detect, settings.chip_bus_bits);
+		dimm0->addRepair(bch0);
+	}
+	else if (settings.repairmode == Settings::VECC)
+	{
+		std::stringstream ss;
+		ss << "VECC" << settings.correct << '+' << settings.vecc_correct;
+		VeccRepair *vecc = new VeccRepair(ss.str(), settings.correct, settings.detect,
+													settings.vecc_correct, settings.vecc_protection);
+		vecc->allow_software_tolerance(settings.sw_tol, settings.vecc_sw_tol);
+		dimm0->addRepair(vecc);
+	}
+
+	if (settings.repairmode != Settings::VECC)
+	{
+		// VECC has software-level tolerance already built-in. For other ECCs add it afterwards.
+		SoftwareTolerance *swtol = new SoftwareTolerance(std::string("SWTOL"), settings.sw_tol);
+		dimm0->addRepair(swtol);
+	}
+
+	return dimm0;
+}
 
 /** This functions returns the lost of fault intersections that intersect at a granularity given by symbol_size, subject to being
  * validated by the predicate.

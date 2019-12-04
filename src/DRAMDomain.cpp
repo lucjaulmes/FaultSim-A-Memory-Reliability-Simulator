@@ -30,8 +30,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DRAMDomain.hh"
 
 
-extern struct Settings settings;
-
 DRAMDomain::DRAMDomain(GroupDomain *group, const std::string &name, unsigned id, uint32_t bitwidth, uint32_t ranks,
 					   uint32_t banks, uint32_t rows, uint32_t cols, double weibull_shape_parameter)
 	: FaultDomain(name)
