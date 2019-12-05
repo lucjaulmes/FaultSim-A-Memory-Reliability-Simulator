@@ -42,12 +42,6 @@ class GroupDomain_dimm : public GroupDomain
 	std::list<FaultIntersection> m_failures;
 	bool m_failures_computed;
 
-	void prepare()
-	{
-		m_failures.clear();
-		m_failures_computed = false;
-	}
-
 	GroupDomain_dimm(const std::string& name, uint64_t chips, uint64_t banks, uint64_t burst_length)
 		: GroupDomain(name)
 		, m_chips(chips), m_banks(banks), m_burst_size(burst_length)
@@ -61,6 +55,23 @@ public:
 	std::list<FaultIntersection>& intersecting_ranges(unsigned symbol_size,
 													  std::function<bool(FaultIntersection&)> predicate = [](auto &f){ return f.chip_count() > 0; });
 
+	inline
+	virtual failures_t repair()
+	{
+		m_failures.clear();
+		m_failures_computed = false;
+
+		return GroupDomain::repair();
+	}
+
+	inline
+	virtual void reset()
+	{
+		m_failures.clear();
+		m_failures_computed = false;
+
+		GroupDomain::reset();
+	}
 
 	inline
 	uint64_t data_chips() const

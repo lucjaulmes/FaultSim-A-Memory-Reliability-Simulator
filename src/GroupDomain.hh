@@ -48,9 +48,9 @@ public:
 
     failures_t repair();
     void finalize();
-	void reset();
+	virtual void reset();
 
-	void dumpState();
+	virtual void dumpState();
     void printStats(uint64_t max_time);
 
     inline void scrub()

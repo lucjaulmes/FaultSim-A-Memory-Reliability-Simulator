@@ -80,13 +80,10 @@ public:
 	}
 
 	virtual faults_t getFaultCount() = 0;
-	virtual void prepare() = 0;
 
 	inline
 	virtual failures_t repair()
 	{
-		prepare();
-
 		// In the absence of repair schemes, all faults are undetected and uncorrected
 		faults_t n_faults = getFaultCount();
 		failures_t errors = {n_faults.total(), n_faults.total()};

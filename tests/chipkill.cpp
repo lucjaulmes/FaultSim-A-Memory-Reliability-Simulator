@@ -1,8 +1,13 @@
 #include <boost/test/unit_test.hpp>
 
+#include "dram_common.hh"
 #include "Settings.hh"
+#include "FaultDomain.hh"
+#include "DRAMDomain.hh"
 #include "GroupDomain_dimm.hh"
 #include "ChipKillRepair.hh"
+
+#include "utils.hh"
 
 namespace chipkill
 {
@@ -43,12 +48,36 @@ Settings settings()
 }
 
 Settings conf = settings();
-GroupDomain_dimm &domain = *GroupDomain_dimm::genModule(conf, 0);
+std::unique_ptr<GroupDomain_dimm> domain {GroupDomain_dimm::genModule(conf, 0)};
+std::vector<DRAMDomain *> chips = get_chips(*domain);
+
+const unsigned symbol_size = domain->burst_size() / domain->data_chips();
 
 
-BOOST_AUTO_TEST_CASE( ChipKill_DRAM_chip_count )
+
+BOOST_AUTO_TEST_CASE( ChipKill_DRAM_1rank )
 {
-	BOOST_CHECK( domain.getChildren().size() == 18 );
+	FaultRange *fr = chips[0]->genRandomRange(DRAM_NBANK, false);
+	chips[0]->insertFault(fr);
+	BOOST_CHECK( domain->repair().any() == false );
+
+	domain->reset();
+}
+
+BOOST_AUTO_TEST_CASE( ChipKill_DRAM_1rank_1bit )
+{
+	FaultRange *fr0 = chips[0]->genRandomRange(DRAM_NBANK, false);
+	FaultRange *fr1 = chips[1]->genRandomRange(DRAM_1BIT, true);
+
+	// Inject in the same rank
+	copy<Ranks>(fr0, fr1);
+
+	chips[0]->insertFault(fr0);
+	chips[1]->insertFault(fr1);
+
+	BOOST_CHECK( domain->repair().any() == true );
+
+	domain->reset();
 }
 
 };

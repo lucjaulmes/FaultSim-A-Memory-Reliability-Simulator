@@ -52,7 +52,7 @@ failures_t ChipKillRepair::repair(FaultDomain *fd)
 	std::list<FaultIntersection>& failures = dd->intersecting_ranges(symbol_bits, predicate);
 
 	failures_t count = {0, 0};
-	for (auto fail: failures)
+	for (auto &fail: failures)
 	{
 		if (fail.chip_count() > m_n_detect)
 		{

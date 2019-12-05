@@ -142,7 +142,7 @@ bool VeccRepair::check_tier2(GroupDomain_dimm *dd, FaultIntersection& error)
 				DRAMDomain *dram = dynamic_cast<DRAMDomain*>(chip);
 
 				// NB: only data chips used for Tier2 VECC to allow partial writes
-				if (dram->get_chip_num() >= data_chips)
+				if (dram->getChipNum() >= data_chips)
 					continue;
 
 				std::list<FaultRange *> list = dram->getRanges();

@@ -71,8 +71,6 @@ void GroupDomain::dumpState()
 
 failures_t GroupDomain::repair()
 {
-	prepare();
-
 	uint64_t faults_before_repair = getFaultCount().total();
 	failures_t fail = {0, 0};
 

@@ -48,7 +48,7 @@ protected:
 
 	struct fault_param { double transient, permanent; } FIT_rate[DRAM_MAX];
 
-	std::list<FaultRange *> m_faultRanges, m_correctedRanges;
+	std::list<FaultRange *> m_innerRanges, m_outerRanges;
 
 	mutable std::mt19937_64 gen;
 	std::weibull_distribution<double> time_dist;
@@ -70,34 +70,42 @@ public:
 	}
 
 	inline
-	void prepare()
-	{
-		m_correctedRanges.clear();
-		std::copy(m_faultRanges.begin(), m_faultRanges.end(),
-				  std::back_inserter(m_correctedRanges));
-	}
-
-	inline
 	void reset()
 	{
-		for (FaultRange *fr: m_faultRanges)
+		for (FaultRange *fr: m_innerRanges)
 			delete fr;
 
-		m_correctedRanges.clear();
-		m_faultRanges.clear();
+		m_outerRanges.clear();
+		m_innerRanges.clear();
 		n_faults = {0, 0};
 	}
 
 	inline
 	std::list<FaultRange *> &getRanges()
 	{
-		return m_correctedRanges;
+		return m_outerRanges;
+	}
+
+	inline
+	virtual failures_t repair()
+	{
+		// TODO: repair() does the transformation of inner -> outer ranges for now,
+		// this is probably poor design. Instead we should apply repair on inside addresses
+		// and then transform to outside addresses.
+		m_outerRanges.clear();
+		std::copy(m_innerRanges.begin(), m_innerRanges.end(),
+				  std::back_inserter(m_outerRanges));
+
+		return FaultDomain::repair();
 	}
 
 	inline
 	void insertFault(FaultRange *fr)
 	{
-		m_faultRanges.push_back(fr);
+		m_innerRanges.push_back(fr);
+		// TODO: remap columns from pre-onDIE ECC -> post onDIE ECC
+		m_outerRanges.push_back(fr);
+
 		fault_class_t cls = maskClass(fr->fWildMask);
 
 		if (fr->transient)
@@ -119,7 +127,7 @@ public:
 	};
 
 	inline
-	unsigned get_chip_num() const
+	unsigned getChipNum() const
 	{
 		return chip_in_rank;
 	}

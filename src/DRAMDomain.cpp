@@ -143,11 +143,11 @@ const char *DRAMDomain::faultClassString(fault_class_t i)
 
 void DRAMDomain::dumpState()
 {
-	if (m_faultRanges.size() != 0)
+	if (m_innerRanges.size() != 0)
 	{
 		std::cout << m_name << " ";
 
-		for (FaultRange *fr: m_faultRanges)
+		for (FaultRange *fr: m_innerRanges)
 			std::cout << fr->toString() << "\n";
 	}
 }
@@ -155,12 +155,12 @@ void DRAMDomain::dumpState()
 void DRAMDomain::scrub()
 {
 	// delete all transient faults
-	for (auto it = m_faultRanges.begin(); it != m_faultRanges.end(); )
+	for (auto it = m_innerRanges.begin(); it != m_innerRanges.end(); )
 	{
 		FaultRange *fr = *it;
 		if (fr->transient && fr->transient_remove)
 		{
-			it = m_faultRanges.erase(it);
+			it = m_innerRanges.erase(it);
 			delete fr;
 		}
 		else
@@ -286,7 +286,7 @@ void DRAMDomain::printStats(uint64_t max_time [[gnu::unused]])
 	// For extra verbose mode, output list of all fault ranges
 	if (settings.verbose == 2)
 	{
-		for (FaultRange *fr: m_faultRanges)
+		for (FaultRange *fr: m_innerRanges)
 			std::cout << fr->toString() << '\n';
 	}
 }
