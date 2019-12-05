@@ -116,4 +116,7 @@ public:
 	virtual void dumpState() {}
 };
 
+template<typename Domain>
+using if_domain = typename std::enable_if<std::is_base_of<FaultDomain, Domain>::value, Domain>::type;
+
 #endif /* FAULTDOMAIN_HH_ */

@@ -54,4 +54,7 @@ public:
 	virtual void printStats() {}
 };
 
+template<typename Scheme>
+using if_repair = typename std::enable_if<std::is_base_of<RepairScheme, Scheme>::value, Scheme>::type;
+
 #endif /* REPAIRSCHEME_HH_ */

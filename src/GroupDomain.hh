@@ -91,4 +91,7 @@ public:
 };
 
 
+template<typename Domain>
+using if_groupdom = typename std::enable_if<std::is_base_of<FaultDomain, Domain>::value, Domain>::type;
+
 #endif /* GROUPDOMAIN_HH_ */
