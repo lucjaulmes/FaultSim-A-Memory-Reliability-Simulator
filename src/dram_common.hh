@@ -57,6 +57,12 @@ typedef struct failures_t
 	uint64_t undetected, uncorrected;
 
 	inline
+	bool any()
+	{
+		return undetected > 0 or uncorrected > 0;
+	}
+
+	inline
 	struct failures_t& operator+=(const struct failures_t &other)
 	{
 		undetected += other.undetected, uncorrected += other.uncorrected;
