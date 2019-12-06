@@ -112,7 +112,7 @@ failures_t BCHRepair_inDRAM::repair(FaultDomain *fd)
 		{
 			FaultIntersection& col_err = column_error_it->second;
 
-			if (col_err.bit_count_aggregate(m_base_size - 1) > m_n_correct)
+			if (col_err.bit_count_aggregate(m_base_size + m_extra_size) > m_n_correct)
 			{
 				failed_codeword_columns[column_error_it->first] = true;
 				insert(raw_faults, col_err);
@@ -140,7 +140,7 @@ failures_t BCHRepair_inDRAM::repair(FaultDomain *fd)
 			if (column_error_it != columns.end() && column_error_it->first == codeword)
 				word_err.intersection(column_error_it->second);
 
-			if (word_err.bit_count_aggregate(m_base_size - 1) > m_n_correct)
+			if (word_err.bit_count_aggregate(m_base_size + m_extra_size) > m_n_correct)
 				insert(raw_faults, word_err);
 		}
 	}

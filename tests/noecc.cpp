@@ -30,10 +30,6 @@ Settings settings()
 	settings.data_block_bits = 512;
 
 	settings.repairmode = Settings::NONE;
-	settings.correct = 0;
-	settings.detect = 0;
-	settings.iecc_codeword = 0;
-	settings.iecc_symbols = 0;
 
 	settings.faultmode = Settings::JAGUAR;
 	settings.fit_factor = 0.;
@@ -77,6 +73,10 @@ BOOST_AUTO_TEST_CASE( noECC_DRAM_1fault )
 
 	BOOST_CHECK( err.size() == 1 );
 
+	err.erase(err.begin());
+
+	BOOST_CHECK( domain->intersecting_ranges(symbol_size).size() == 0 );
+
 	domain->reset();
 }
 
@@ -94,6 +94,8 @@ BOOST_AUTO_TEST_CASE( noECC_DRAM_2faults_intersecting )
 	auto &err = domain->intersecting_ranges(1, [] (auto &f) { return f.chip_count() >= 2; });
 
 	BOOST_CHECK( err.size() == 1 );
+	BOOST_CHECK( domain->intersecting_ranges(1).size() == 1 );
+	BOOST_CHECK( domain->repair().any() == true );
 
 	domain->reset();
 }
@@ -114,6 +116,7 @@ BOOST_AUTO_TEST_CASE( noECC_DRAM_2faults_different )
 	auto &err = domain->intersecting_ranges(1, [] (auto &f) { return f.chip_count() >= 2; });
 
 	BOOST_CHECK( err.size() == 0 );
+	BOOST_CHECK( domain->intersecting_ranges(1).size() == 0 );
 
 	domain->reset();
 }

@@ -34,7 +34,6 @@ FaultRange::FaultRange(DRAMDomain *pDRAM) :
 	touched = 0;
 	fault_mode = 0;
 	transient_remove = true;
-	recent_touched = false;
 	max_faults = 0;
 	TSV = false;
 }

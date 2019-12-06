@@ -210,8 +210,8 @@ int Settings::parse_settings(const std::string &ininame, std::vector<std::string
 
 		if (repairmode & IECC)
 		{
-			iecc_codeword = pt.get<unsigned>("ECC.iecc.correct");
-			iecc_symbols  = pt.get<unsigned>("ECC.iecc.detect");
+			iecc_codeword = pt.get<unsigned>("ECC.iecc.codeword");
+			iecc_dataword = pt.get<unsigned>("ECC.iecc.dataword");
 		}
 
 		if ((repairmode & ~IECC) == VECC)
@@ -225,7 +225,7 @@ int Settings::parse_settings(const std::string &ininame, std::vector<std::string
 			vecc_sw_tol.insert(vecc_sw_tol.begin(), vecc_sw_tol.front());
 		}
 	}
-	catch (boost::wrapexcept<boost::property_tree::ptree_bad_path> &e)
+	catch (boost::property_tree::ptree_bad_path &e)
 	{
 		std::cerr << "Exception while loading config file: " << e.what() << std::endl;
 		return 1;

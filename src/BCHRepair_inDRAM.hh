@@ -47,18 +47,18 @@ protected:
 	std::map<uint64_t, std::list<FaultRange*>> sort_per_bank(std::list<FaultRange*> &list);
 
 public:
-	BCHRepair_inDRAM(std::string name, size_t base = 128, size_t extra = 8)
+	BCHRepair_inDRAM(std::string name, size_t code = 136, size_t data = 128)
 		: RepairScheme(name)
-		, m_base_size(base), m_extra_size(extra)
+		, m_base_size(data), m_extra_size(code - data)
 	{
-		// bits must be a power of 2, and since galois fields have size 2^m - 1, the BCH code used will
-		// be have m = ceil(log2(base)) size in bits of an element in the galois field
-		size_t element = 1 + round(log2(base));
-		size_t parity = extra % element;
+		// galois field of size 2^m - 1 => get m
+		size_t element = ceil(log2(code));
+		// redundant bits are a multiple of m + maybe a parity bit
+		size_t parity = m_extra_size % element;
 
-		if (parity > 1 or base + extra >= (1ULL << element) - 1)
+		if (parity > 1 or code >= (1ULL << element) - 1)
 		{
-			std::cerr << "Error, can not make a (" << base + extra << ", " << base << ") BCH code\n";
+			std::cerr << "Error, can not make a (" << code << ", " << data << ") BCH code\n";
 			std::abort();
 		}
 		else if (parity == 1)
@@ -67,8 +67,7 @@ public:
 			std::abort();
 		}
 
-		m_n_correct = extra / element;
-		// m_n_detect = m_n_correct + parity;
+		m_n_correct = m_extra_size / element;
 	}
 
 	virtual ~BCHRepair_inDRAM() {}

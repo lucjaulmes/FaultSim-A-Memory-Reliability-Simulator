@@ -29,8 +29,6 @@ Settings settings()
 	settings.repairmode = Settings::DDC;  // Data Device Correct
 	settings.correct = 1;
     settings.detect = 2;
-	settings.iecc_codeword = 0;
-    settings.iecc_symbols = 0;
 
 	settings.faultmode = Settings::JAGUAR;
 	settings.fit_factor = 0.;
@@ -59,6 +57,7 @@ BOOST_AUTO_TEST_CASE( ChipKill_DRAM_1rank )
 {
 	FaultRange *fr = chips[0]->genRandomRange(DRAM_NBANK, false);
 	chips[0]->insertFault(fr);
+
 	BOOST_CHECK( domain->repair().any() == false );
 
 	domain->reset();

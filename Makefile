@@ -52,9 +52,9 @@ $(OBJDIR):
 	@mkdir -p $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(COMPILE.cc) -Wpedantic -o $@ $<
+	$(COMPILE.cc) -o $@ $<
 
 $(OBJDIR)/%.o: $(TESTDIR)/%.cpp
-	$(COMPILE.cc) -I$(SRCDIR) -o $@ $<
+	$(COMPILE.cc) -I$(SRCDIR)/ -o $@ $<
 
 .PHONY: all clean depend test

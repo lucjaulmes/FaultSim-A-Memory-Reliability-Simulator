@@ -61,7 +61,8 @@ GroupDomain_dimm* GroupDomain_dimm::genModule(Settings &settings, int module_id)
 	if (settings.repairmode & Settings::IECC)
 	{
 		// ECC 8 + N = in-DRAM ECC + ECC(N)
-		BCHRepair_inDRAM *iecc = new BCHRepair_inDRAM("inDRAM SEC", 128, 16);
+		std::string name = std::string("inDRAM ").append(std::to_string(settings.correct)).append("EC");
+		BCHRepair_inDRAM *iecc = new BCHRepair_inDRAM(name, settings.iecc_codeword, settings.iecc_dataword);
 		dimm0->addChildRepair(iecc);
 		settings.repairmode = settings.repairmode & ~Settings::IECC;
 	}

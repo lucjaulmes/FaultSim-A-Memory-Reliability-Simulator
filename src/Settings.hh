@@ -93,7 +93,7 @@ struct Settings
 	enum {NONE = 0, BCH, DDC, RAID, VECC, IECC = 8} repairmode;
 
 	unsigned correct, detect;
-	unsigned iecc_codeword, iecc_symbols;
+	unsigned iecc_codeword, iecc_dataword;
 
 
 	/** Fraction of failures that the software can tolerate */

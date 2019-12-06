@@ -23,9 +23,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FAULTRANGE_HH_
 
 #include <string>
+#include <iostream>
 #include <vector>
 #include <list>
 #include <tuple>
+#include <algorithm>
+#include <cassert>
 
 
 class DRAMDomain;
@@ -46,7 +49,6 @@ public:
 	uint64_t fault_mode;
 
 	bool transient_remove;
-	bool recent_touched;
 
 	FaultRange(DRAMDomain *pDRAM);
 
@@ -54,7 +56,7 @@ public:
 	FaultRange(DRAMDomain *pDRAM, uint64_t addr, uint64_t mask, bool is_tsv, bool is_transient, uint64_t nbits)
 		: m_pDRAM(pDRAM)
 		, fAddr(addr), fWildMask(mask), transient(is_transient), TSV(is_tsv), max_faults(nbits)
-	    , touched(0), fault_mode(0), transient_remove(true), recent_touched(false)
+	    , touched(0), fault_mode(0), transient_remove(true)
 	{
 	}
 
@@ -106,11 +108,11 @@ public:
 
 	// Use FaultRange copy constructor to create the intersection of 1 fault
 	FaultIntersection(FaultRange *fault, uint64_t min_mask):
-		FaultRange(*fault), intersecting(), outcome(UNDETECTED)
+		FaultRange(fault->m_pDRAM, fault->fAddr & ~min_mask, fault->fWildMask | min_mask,
+				   fault->TSV, fault->transient, fault->max_faults)
+		, intersecting({fault})
+		, outcome(UNDETECTED)
 	{
-		fAddr &= ~min_mask;
-		fWildMask |= min_mask;
-		intersecting.push_back(fault);
 	}
 
 	inline ~FaultIntersection() { intersecting.clear(); }
@@ -124,27 +126,52 @@ public:
 		return intersecting.size();
 	}
 
+	/**
+	 * Returns the number of wrong bits in the intersecting errors.
+	 *
+	 * Assumes that all errors happen in different chips, so this function simply returns the sum of wrong bits in per
+	 * word (defined by the word mask) over all the intersection fault ranges.
+	 */
 	inline
 	size_t bit_count_sum(size_t word_mask)
 	{
-		// for BCH codes, return the number of faults per word
 		size_t wrong_bits = 0;
 		for (auto &fr: intersecting)
-			wrong_bits += __builtin_popcount(fr->fWildMask & word_mask);
+			wrong_bits += __builtin_popcount(fr->fWildMask & word_mask) + 1;
 
 		return wrong_bits;
 	}
 
+	/**
+	 * Returns the number of wrong bits in the intersecting errors.
+	 *
+	 * Assumes that all errors happen in the same chip, so this function aggregates the fault ranges together and counts
+	 * the resulting number of errors in the range defined by the FaultIntersection’s parameters.
+	 */
 	inline
-	size_t bit_count_aggregate(size_t word_mask)
+	size_t bit_count_aggregate(size_t word_size)
 	{
-		// for BCH codes, return the number of faults per word
-		size_t wrong_bits = 0;
+		std::sort(intersecting.begin(), intersecting.end(), [] (FaultRange *a, FaultRange *b) {
+			return std::make_pair(a->fAddr, a->fAddr | a->fWildMask) < std::make_pair(b->fAddr, b->fAddr | b->fWildMask);
+		});
 
+		size_t count = 0, from = fAddr, until = std::min(from + word_size, (fAddr | fWildMask) + 1);
 		for (auto &fr: intersecting)
-			wrong_bits |= fr->fWildMask & word_mask;
+		{
+			// Check the mask is “full”, i.e. a number of the form 2^m - 1, or 0b000..0011..11
+			// If it’s not, some inclusion-exclusion computation needs to be done instead of the simple range maths.
+			assert((1UL << __builtin_popcount(fr->fWildMask)) - 1 == fr->fWildMask);
 
-		return __builtin_popcount(wrong_bits);
+			size_t s = std::max(from, fr->fAddr);
+			size_t e = std::min(until, (fr->fAddr | fr->fWildMask) + 1);
+
+			count += e - s;
+
+			from = s;
+			until = e;
+		}
+
+		return count;
 	}
 
 	inline
