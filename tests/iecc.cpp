@@ -75,14 +75,14 @@ BOOST_AUTO_TEST_CASE( IECC_DRAM_2bit_separate )
 	diff<Cols>(fr0, fr1, wordsize);
 
 	chips[0]->insertFault(fr0);
-	chips[1]->insertFault(fr1);
+	chips[0]->insertFault(fr1);
 
 	BOOST_CHECK( domain->repair().any() == false );
 
 	domain->reset();
 }
 
-BOOST_AUTO_TEST_CASE( IECC_DRAM_2bit_together )
+BOOST_AUTO_TEST_CASE( IECC_DRAM_2bit_codeword )
 {
 	FaultRange *fr0 = chips[0]->genRandomRange(DRAM_1BIT, false);
 	FaultRange *fr1 = new FaultRange(*fr0);
@@ -94,24 +94,58 @@ BOOST_AUTO_TEST_CASE( IECC_DRAM_2bit_together )
 	unsigned word = col / wordsize, pos = col % wordsize;
 	chips[0]->put<Cols>(fr1->fAddr, word * wordsize + (pos + 1) % wordsize);
 
+	FaultIntersection fi0(fr0, 127);
+	FaultIntersection fi1(fr1, 127);
+	fi0.intersection(fi1);
+
+	BOOST_CHECK( fi0.bit_count_aggregate(128) == 2 );
+
 	chips[0]->insertFault(fr0);
-	chips[1]->insertFault(fr1);
+	chips[0]->insertFault(fr1);
 
 	BOOST_CHECK( domain->repair().any() == true );
 
 	domain->reset();
 }
 
-BOOST_AUTO_TEST_CASE( IECC_DRAM_2x_1bit )
+BOOST_AUTO_TEST_CASE( IECC_DRAM_2x_same_1bit )
 {
 	FaultRange *fr0 = chips[0]->genRandomRange(DRAM_1BIT, false);
 	FaultRange *fr1 = new FaultRange(*fr0);
+
+	FaultIntersection fi0(fr0, 127);
+	FaultIntersection fi1(fr1, 127);
+	fi0.intersection(fi1);
+
+	BOOST_CHECK( fi0.bit_count_aggregate(128) == 1 );
 
 	// twice the same 1BIT fault should be correctable
 	chips[0]->insertFault(fr0);
 	chips[0]->insertFault(fr1);
 
 	BOOST_CHECK( domain->repair().any() == false );
+
+	domain->reset();
+}
+
+BOOST_AUTO_TEST_CASE( IECC_DRAM_1bit_1col )
+{
+	FaultRange *fr0 = chips[0]->genRandomRange(DRAM_1COL, false);
+	FaultRange *fr1 = new FaultRange(*fr0);
+	chips[0]->put<Rows>(fr1->fWildMask, 0);
+	chips[0]->put<Bits>(fr1->fWildMask, 0);
+
+	FaultIntersection fi0(fr0, 127);
+	FaultIntersection fi1(fr1, 127);
+	fi0.intersection(fi1);
+
+	BOOST_CHECK( fi0.bit_count_aggregate(128) == chips[0]->getNum<Cols>() );
+
+	// Inject in the same IECC codeword
+	chips[0]->insertFault(fr0);
+	chips[0]->insertFault(fr1);
+
+	BOOST_CHECK( domain->repair().any() == true );
 
 	domain->reset();
 }
