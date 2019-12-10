@@ -85,7 +85,7 @@ GroupDomain_dimm* GroupDomain_dimm::genModule(Settings &settings, int module_id)
 		std::stringstream ss;
 		ss << "VECC" << settings.correct << '+' << settings.vecc_correct;
 		VeccRepair *vecc = new VeccRepair(ss.str(), settings.correct, settings.detect,
-													settings.vecc_correct, settings.vecc_protection);
+													settings.vecc_correct - settings.detect, settings.vecc_protection);
 		vecc->allow_software_tolerance(settings.sw_tol, settings.vecc_sw_tol);
 		dimm0->addRepair(vecc);
 	}
