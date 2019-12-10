@@ -108,7 +108,7 @@ bool VeccRepair::check_tier2(GroupDomain_dimm *dd, FaultIntersection& error)
 	// TODO: implement a realistic evaluation for m_protection_fraction == 1.
 
 	// TODO: remember pages that were protected
-	if (gen() > m_protected_fraction)
+	if (distribution(gen) > m_protected_fraction)
 		return try_sw_tolerance(error, m_unprotected_swtol);
 
 	// Get a random location in a (the?) other rank, where the supplementary symbols (tier 2 ECC) for this DRAM row is stored

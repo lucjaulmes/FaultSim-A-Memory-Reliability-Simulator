@@ -48,11 +48,11 @@ GroupDomain_dimm* GroupDomain_dimm::genModule(Settings &settings, int module_id)
 		DRAMDomain *dram0 = new DRAMDomain(dimm0, chip, i, settings.chip_bus_bits, settings.ranks, settings.banks,
 										   settings.rows, settings.cols);
 
-		for (int cls = DRAM_1BIT; cls != DRAM_MAX; cls++)
+		for (int cls = DRAM_1BIT; cls != DRAM_MAX; ++cls)
 		{
 			double scf_factor = cls == DRAM_1BIT ? settings.scf_factor : 1.;
-			dram0->setFIT(DRAM_1BIT, true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
-			dram0->setFIT(DRAM_1BIT, true, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
+			dram0->setFIT(static_cast<fault_class_t>(cls), true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
+			dram0->setFIT(static_cast<fault_class_t>(cls), false, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
 		}
 
 		dimm0->addDomain(dram0);

@@ -112,13 +112,11 @@ GroupDomain_cube* GroupDomain_cube::genModule(Settings &settings, int module_id)
 		DRAMDomain *dram0 = new DRAMDomain(stack0, chip, i, settings.chip_bus_bits, settings.ranks, settings.banks,
 										   settings.rows, settings.cols);
 
-		double scf_factor = settings.scf_factor;
-		for (int cls = DRAM_1BIT; cls != DRAM_NRANK; cls++)
+		for (int cls = DRAM_1BIT; cls != DRAM_NRANK; ++cls)
 		{
-			dram0->setFIT(DRAM_1BIT, true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
-			dram0->setFIT(DRAM_1BIT, true, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
-
-			scf_factor = 1.;
+			double scf_factor = cls == DRAM_1BIT ? settings.scf_factor : 1.;
+			dram0->setFIT(static_cast<fault_class_t>(cls), true, settings.fit_transient[cls] * settings.fit_factor * scf_factor);
+			dram0->setFIT(static_cast<fault_class_t>(cls), false, settings.fit_permanent[cls] * settings.fit_factor * scf_factor);
 		}
 
 		// Rank FIT rates cannot be directly translated to 3D stack
